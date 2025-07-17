@@ -1,0 +1,39 @@
+package com.wzz.table.pojo;
+
+
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
+import lombok.Data;
+
+import java.time.LocalDateTime;
+
+@Data
+@TableName("operation_log")
+public class Operationlog {
+    //id
+    @TableId(type = IdType.AUTO)
+    private Long id;
+
+    //管理员
+    @TableField("admin_user")
+    private String adminUser;
+
+    //用户
+    @TableField("points_user")
+    private String pointsUser;
+
+    //操作数值
+    @TableField("change_num")
+    private Long changeNum;
+
+    //操作后数值
+    @TableField("points")
+    private Long points;
+
+    //操作时间
+    @TableField("cr_time")
+    private LocalDateTime crTime;
+
+}
