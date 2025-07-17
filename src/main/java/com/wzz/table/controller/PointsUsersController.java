@@ -68,6 +68,9 @@ public class PointsUsersController {
         if (p == null) {
             return Result.success("用户不存在，无法减少积分");
         }else {
+            if(p.getPoints()-point<0){
+                return Result.error("积分减少失败，值为负数？");
+            }
             p.setPoints(p.getPoints() - point);
             Boolean is_update = pointsUsersService.update(p);
             if (is_update) {
