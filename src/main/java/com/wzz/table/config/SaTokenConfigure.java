@@ -20,6 +20,7 @@ public class SaTokenConfigure implements WebMvcConfigurer {
     }
     // 注册登陆，角色拦截器
     public void addInterceptors(InterceptorRegistry registry) {
+
         registry.addInterceptor(new SaInterceptor(handler ->{
             SaRouter.match("/**")
                     .notMatch("/api/user/login")

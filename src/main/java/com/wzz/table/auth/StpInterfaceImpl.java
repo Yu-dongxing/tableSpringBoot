@@ -52,9 +52,15 @@ public class StpInterfaceImpl implements StpInterface {
             }
         }
         User u = userService.findById(longId);
-        System.out.println(u);
-        List<String> list = new ArrayList<String>();
-        list.add(String.valueOf(u.getRole()));
-        return list;
+        if (u == null) {
+            System.err.println("<UNK> <UNK> Long");
+            return null;
+        }else {
+            System.out.println(u);
+            List<String> list = new ArrayList<String>();
+            list.add(String.valueOf(u.getRole()));
+            return list;
+        }
+
     }
 }

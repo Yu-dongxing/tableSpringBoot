@@ -61,7 +61,7 @@ public class userController {
 
     @SaCheckRole("0")
     @PostMapping("/sign")
-    public Result<Map<String, Object>> sign(@RequestBody UserLoginDto userLoginDto) {
+    public Result<String> sign(@RequestBody UserLoginDto userLoginDto) {
         User u = new User();
         u.setRole(1);//默认为管理员角色
         if (userLoginDto.getPassword() != null) {
@@ -75,27 +75,7 @@ public class userController {
 
             Boolean isSign = userService.sign(u);
             if (isSign) {
-                User loginU = userService.findByUsername(userLoginDto.getUsername());
-                StpUtil.login(loginU.getId(), SaLoginConfig
-                        .setExtra("roleId",loginU.getRole())
-                        .setExtra("userId",loginU.getId())
-                        .setExtra("username",loginU.getUsername())
-                );
-                SaTokenInfo a = StpUtil.getTokenInfo();
-                // 构造 Map
-                Map<String, Object> userMap = new HashMap<>();
-                String roleName = "";
-                if(loginU.getRole() == 0){
-                    roleName = "Boss";
-                }else {
-                    roleName = "Admin";
-                }
-                userMap.put("userName",loginU.getUsername());
-                userMap.put("roleName", roleName);
-                userMap.put("roleId", loginU.getRole());
-                userMap.put("token", a.getTokenValue());
-
-                return Result.success("注册并且登陆成功！返回token",userMap);
+                return Result.success("注册成功！");
             }else {
                 return Result.error("注册失败！");
             }
@@ -166,4 +146,6 @@ public class userController {
         }
 
     }
+    //根据用户名修改管理用户密码
+
 }
