@@ -28,34 +28,34 @@ public class GlobalExceptionHandler {
             return Result.error(101,"未能读取到有效Token");
         }
         if(e.getCode() == 11002) {
-            return Result.error(101,"登录时的账号id值为空");
+            return Result.error(102,"登录时的账号id值为空");
         }
         if(e.getCode() == 11003) {
-            return Result.error(101,"更改 Token 指向的 账号Id 时，账号Id值为空");
+            return Result.error(103,"更改 Token 指向的 账号Id 时，账号Id值为空");
         }
         if(e.getCode() == 11011) {
-            return Result.error(101,"未能读取到有效Token");
+            return Result.error(104,"未能读取到有效Token");
         }
         if(e.getCode() == 11012) {
-            return Result.error(101,"Token无效");
+            return Result.error(105,"Token无效");
         }
         if(e.getCode() == 11013) {
-            return Result.error(101,"Token已过期");
+            return Result.error(106,"Token已过期");
         }
         if(e.getCode() == 11014) {
-            return Result.error(101,"Token已被顶下线");
+            return Result.error(107,"Token已被顶下线");
         }
         if(e.getCode() == 11015) {
-            return Result.error(101,"Token已被踢下线");
+            return Result.error(108,"Token已被踢下线");
         }
         if(e.getCode() == 11016) {
-            return Result.error(101,"Token已被冻结");
+            return Result.error(109,"Token已被冻结");
         }
         if(e.getCode() == 11041) {
             return Result.error(403, "无权限，请联系管理员");
         }
         if(e.getCode() == 11042) {
-            return Result.error(403, "无此角色权限：" + e.getMessage());
+            return Result.error(404, "无此角色权限：" + e.getMessage());
         }
         System.out.println(e);
         return Result.error(500,"服务器错误");

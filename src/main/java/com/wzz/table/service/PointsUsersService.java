@@ -16,4 +16,6 @@ public interface PointsUsersService {
     Boolean deleteByUser(String username);
 
     PointsUsers findByUserName(String userNa);
+
+    PointsUsers findByNickName(String nickname);
 }

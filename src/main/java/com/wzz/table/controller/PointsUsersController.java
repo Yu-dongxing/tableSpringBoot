@@ -104,4 +104,10 @@ public class PointsUsersController {
         PointsUsers a = pointsUsersService.findByUser(username);
         return Result.success(a);
     }
+    //根据昵称查询用户信息
+    @GetMapping("/find/nickname")
+    public Result<PointsUsers> findByNickName(String nickname){
+        PointsUsers  u = pointsUsersService.findByNickName(nickname);
+        return Result.success(u);
+    }
 }

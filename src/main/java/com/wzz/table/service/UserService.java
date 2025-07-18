@@ -3,6 +3,8 @@ package com.wzz.table.service;
 import com.wzz.table.pojo.User;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 public interface UserService {
     Boolean sign(User user);
 
@@ -15,4 +17,6 @@ public interface UserService {
     Boolean rePassword(User user);
 
     Boolean deleteByid(User user);
+
+    List<User> findAll();
 }

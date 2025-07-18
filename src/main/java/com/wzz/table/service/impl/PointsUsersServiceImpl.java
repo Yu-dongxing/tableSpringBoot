@@ -65,8 +65,9 @@ public class PointsUsersServiceImpl implements PointsUsersService {
     public PointsUsers findByUserName(String userNa) {
         return null;
     }
+
+    @Override
+    public PointsUsers findByNickName(String nickname) {
+        return pointsUsersMapper.selectOne(new LambdaQueryWrapper<PointsUsers>().eq(PointsUsers::getNickname,nickname));
+    }
 }
-
-
-//new LambdaQueryWrapper<User>()
-//                        .eq(User::getUsername, username)

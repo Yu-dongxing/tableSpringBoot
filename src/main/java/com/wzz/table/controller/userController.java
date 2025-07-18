@@ -14,6 +14,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 //管理员登陆
@@ -146,10 +147,23 @@ public class userController {
         StpUtil.logout();
         return Result.success("退出登陆成功，请删除token和cookie！");
     }
+    @SaCheckRole("0")
     //根据用户id查询用户信息
     @GetMapping("/find/userid")
     public Result<User> findByUserId(@RequestBody Long userId){
         User u = userService.findById(userId);
         return Result.success("查询成功",u);
+    }
+    @SaCheckRole("0")
+    //查询所有管理用户
+    @GetMapping("/find/all")
+    public Result<List<User>> findAll(){
+        List<User> ls = userService.findAll();
+        if(ls!=null){
+            return Result.success("查询所有管理用户成功",ls);
+        }else {
+            return Result.error("查询所有管理用户错误，没有找到数据");
+        }
+
     }
 }
