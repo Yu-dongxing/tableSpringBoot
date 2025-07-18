@@ -1,17 +1,22 @@
 package com.wzz.table.controller;
 
+import cn.dev33.satoken.annotation.SaCheckRole;
 import cn.dev33.satoken.stp.SaLoginConfig;
 import cn.dev33.satoken.stp.SaTokenInfo;
 import cn.dev33.satoken.stp.StpUtil;
+import cn.hutool.Hutool;
 import com.wzz.table.DTO.Result;
+import com.wzz.table.DTO.UserLoginDto;
+import com.wzz.table.DTO.UserUpdatePasswordDto;
 import com.wzz.table.pojo.User;
 import com.wzz.table.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
+import java.util.Map;
+
+//管理员登陆
 @RestController
 @RequestMapping("/api/user")
 public class userController {
@@ -20,12 +25,12 @@ public class userController {
     private UserService userService;
 
     @PostMapping("/login")
-    public Result<String> login(String username, String password) {
-        User loginUser = userService.findByUsername(username);
+    public Result<Map<String, Object>> login(@RequestBody UserLoginDto userLoginDto) {
+        User loginUser = userService.findByUsername(userLoginDto.getUsername());
         if (loginUser == null) {
             return Result.error("用户名或者密码错误！");
         }else {
-            if (loginUser.getPassword().equals(password)) {
+            if (loginUser.getPassword().equals(userLoginDto.getPassword())) {
                 //jwt模式有效
                 StpUtil.login(loginUser.getId(), SaLoginConfig
                         .setExtra("roleId",loginUser.getRole())
@@ -34,28 +39,62 @@ public class userController {
                         .setIsWriteHeader(true)
                 );
                 SaTokenInfo a = StpUtil.getTokenInfo();
-                return Result.success("登陆成功，返回token",a.tokenValue);
+                // 构造 Map
+                Map<String, Object> userInfoMap = new HashMap<>();
+                String roleName = "";
+                if(loginUser.getRole() == 0){
+                    roleName = "Boss";
+                }else {
+                    roleName = "Admin";
+                }
+                userInfoMap.put("userName",loginUser.getUsername());
+                userInfoMap.put("roleName", roleName);
+                userInfoMap.put("roleId", loginUser.getRole());
+                userInfoMap.put("token", a.getTokenValue());
+                return Result.success("登陆成功，返回角色和token",userInfoMap);
             }else {
                 return Result.error("密码错误，请重新输入！");
             }
         }
     }
+
+    @SaCheckRole("0")
     @PostMapping("/sign")
-    public Result<String> sign(@RequestBody User user) {
-        user.setRole(1);//默认为管理员角色
-        User loginUser = userService.findByUsername(user.getUsername());
+    public Result<Map<String, Object>> sign(@RequestBody UserLoginDto userLoginDto) {
+        User u = new User();
+        u.setRole(1);//默认为管理员角色
+        if (userLoginDto.getPassword() != null) {
+            u.setPassword(userLoginDto.getPassword());
+        }else {
+            u.setPassword("123456789");
+        }
+        u.setUsername(userLoginDto.getUsername());
+        User loginUser = userService.findByUsername(userLoginDto.getUsername());
         if (loginUser == null) {
 
-            Boolean isSign = userService.sign(user);
+            Boolean isSign = userService.sign(u);
             if (isSign) {
-                User loginU = userService.findByUsername(user.getUsername());
+                User loginU = userService.findByUsername(userLoginDto.getUsername());
                 StpUtil.login(loginU.getId(), SaLoginConfig
                         .setExtra("roleId",loginU.getRole())
                         .setExtra("userId",loginU.getId())
                         .setExtra("username",loginU.getUsername())
                 );
                 SaTokenInfo a = StpUtil.getTokenInfo();
-                return Result.success("注册并且登陆成功！返回token",a.tokenValue);
+                // 构造 Map
+                Map<String, Object> userMap = new HashMap<>();
+                String roleName = "";
+                if(loginU.getRole() == 0){
+                    roleName = "Boss";
+                }else {
+                    roleName = "Admin";
+                }
+                userMap.put("userName",loginU.getUsername());
+                userMap.put("roleName", roleName);
+                userMap.put("roleId", loginU.getRole());
+                userMap.put("token", a.getTokenValue());
+
+                return Result.success("注册并且登陆成功！返回token",userMap);
             }else {
                 return Result.error("注册失败！");
             }
@@ -65,12 +104,12 @@ public class userController {
     }
     //更新密码
     @PostMapping("/repas")
-    public Result<String> rePassword(String oldPassword, String newPassword) {
+    public Result<String> rePassword(@RequestBody UserUpdatePasswordDto userUpdatePasswordDto) {
         long userId = StpUtil.getLoginIdAsLong();
         User user = userService.findById(userId);
         if (user != null) {
-            if (oldPassword.equals(user.getPassword())) {
-                user.setPassword(newPassword);
+            if (userUpdatePasswordDto.getOldPassword().equals(user.getPassword())) {
+                user.setPassword(userUpdatePasswordDto.getNewPassword());
                 Boolean is = userService.rePassword(user);
                 if (is) {
                     return Result.success("更新密码成功！");
@@ -86,6 +125,7 @@ public class userController {
 
     }
     //删除管理用户
+    @SaCheckRole("0")
     @PostMapping("/delete")
     public Result<String> deleteByUser(String username) {
         User user = userService.findByUsername(username);
@@ -99,5 +139,17 @@ public class userController {
         }else {
             return Result.error("查询不到用户，删除失败！");
         }
+    }
+    //退出登陆
+    @GetMapping("/logout")
+    public Result<String> logOut(){
+        StpUtil.logout();
+        return Result.success("退出登陆成功，请删除token和cookie！");
+    }
+    //根据用户id查询用户信息
+    @GetMapping("/find/userid")
+    public Result<User> findByUserId(@RequestBody Long userId){
+        User u = userService.findById(userId);
+        return Result.success("查询成功",u);
     }
 }

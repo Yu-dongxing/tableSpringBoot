@@ -69,4 +69,5 @@ public class Result<T> {
     public static Result error(int code, String message) {
         return new Result(code, message, null);
     }
+
 }

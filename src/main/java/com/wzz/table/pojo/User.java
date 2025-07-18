@@ -16,7 +16,7 @@ public class User {
     @TableField("username")
     private String username;
 
-    //@JsonIgnore
+    @JsonIgnore
     @TableField("password")
     private String password;
 

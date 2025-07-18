@@ -2,6 +2,7 @@ package com.wzz.table.controller;
 
 
 import com.wzz.table.DTO.Result;
+import com.wzz.table.pojo.Operationlog;
 import com.wzz.table.pojo.PointsUsers;
 import com.wzz.table.service.PointsUsersService;
 import com.wzz.table.utils.OperationlogUtil;
@@ -49,7 +50,6 @@ public class PointsUsersController {
         if (p == null) {
             return Result.success("用户不存在，无法增加积分");
         }else {
-
             p.setPoints(p.getPoints() + point);
             Boolean is_update = pointsUsersService.update(p);
             if (is_update) {
@@ -97,5 +97,11 @@ public class PointsUsersController {
         }else {
             return Result.success("该用户删除失败");
         }
+    }
+    //根据用户名查询积分
+    @GetMapping("/find/user")
+    public Result<PointsUsers> findByUser(String username){
+        PointsUsers a = pointsUsersService.findByUser(username);
+        return Result.success(a);
     }
 }
