@@ -10,7 +10,7 @@ import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 @Configuration
-public class CorsConfig  implements WebMvcConfigurer {
+public class CorsConfig implements WebMvcConfigurer {
     @Override
     public void addCorsMappings(CorsRegistry registry) {
 //        registry.addMapping("/**")
@@ -27,6 +27,7 @@ public class CorsConfig  implements WebMvcConfigurer {
                 .allowCredentials(false) // 禁用凭据支持
                 .maxAge(3600);
     }
+
     /**
      * CORS 跨域处理策略
      */

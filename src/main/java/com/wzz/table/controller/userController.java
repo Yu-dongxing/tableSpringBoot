@@ -38,7 +38,7 @@ public class userController {
                         .setExtra("roleId",loginUser.getRole())
                         .setExtra("userId",loginUser.getId())
                         .setExtra("username",loginUser.getUsername())
-                        .setIsWriteHeader(true)
+
                 );
                 SaTokenInfo a = StpUtil.getTokenInfo();
                 // 构造 Map
@@ -65,9 +65,9 @@ public class userController {
     public Result<String> sign(@RequestBody UserLoginDto userLoginDto) {
         User u = new User();
         u.setRole(1);//默认为管理员角色
-        if (userLoginDto.getPassword() != null) {
+        if (userLoginDto.getPassword() != null && !userLoginDto.getPassword().isBlank()) {
             u.setPassword(userLoginDto.getPassword());
-        }else {
+        } else {
             u.setPassword("123456789");
         }
         u.setUsername(userLoginDto.getUsername());
