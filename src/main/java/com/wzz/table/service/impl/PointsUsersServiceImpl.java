@@ -2,6 +2,7 @@ package com.wzz.table.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.conditions.query.LambdaQueryChainWrapper;
+import com.wzz.table.DTO.PointFindUserAndNick;
 import com.wzz.table.mapper.PointsUsersMapper;
 import com.wzz.table.pojo.PointsUsers;
 import com.wzz.table.service.PointsUsersService;
@@ -69,5 +70,15 @@ public class PointsUsersServiceImpl implements PointsUsersService {
     @Override
     public PointsUsers findByNickName(String nickname) {
         return pointsUsersMapper.selectOne(new LambdaQueryWrapper<PointsUsers>().eq(PointsUsers::getNickname,nickname));
+    }
+
+    @Override
+    public PointsUsers findByUserAndBick(PointFindUserAndNick pointFindUserAndNick) {
+        if (pointFindUserAndNick == null || pointFindUserAndNick.getUser() == null || pointFindUserAndNick.getNickname() == null) {
+            throw new IllegalArgumentException("Invalid input parameters");
+        }
+        return pointsUsersMapper.selectOne(new LambdaQueryWrapper<PointsUsers>()
+                .eq(PointsUsers::getUser, pointFindUserAndNick.getUser())
+                .eq(PointsUsers::getNickname, pointFindUserAndNick.getNickname()));
     }
 }
