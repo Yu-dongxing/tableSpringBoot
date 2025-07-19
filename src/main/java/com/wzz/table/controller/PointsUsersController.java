@@ -1,6 +1,7 @@
 package com.wzz.table.controller;
 
 
+import com.wzz.table.DTO.PointFindUserAndNick;
 import com.wzz.table.DTO.Result;
 import com.wzz.table.pojo.Operationlog;
 import com.wzz.table.pojo.PointsUsers;
@@ -33,8 +34,11 @@ public class PointsUsersController {
             }
         }else {
             p.setPoints(pointsUsers.getPoints());
-            p.setNickname(pointsUsers.getNickname());
+            if (pointsUsers.getNickname() != null && !"".equals(pointsUsers.getNickname())) {
+                p.setNickname(pointsUsers.getNickname());
+            }
             Boolean is_update = pointsUsersService.update(p);
+
             if (is_update) {
                 operationlogUtil.add(p.getUser(), pointsUsers.getPoints());
                 return Result.success("积分用户更新成功");
@@ -86,6 +90,9 @@ public class PointsUsersController {
     @GetMapping("/all")
     public Result<List<PointsUsers>> getAll() {
         List<PointsUsers> ls = pointsUsersService.findAll();
+        if (ls == null) {
+            return Result.error("查询失败！");
+        }
         return Result.success(ls);
     }
     //根据用户删除积分
@@ -93,6 +100,7 @@ public class PointsUsersController {
     public Result<String> deleteByUser(String username){
         Boolean is_de = pointsUsersService.deleteByUser(username);
         if (is_de) {
+            operationlogUtil.del(username, "删除");
             return Result.success("该用户删除成功");
         }else {
             return Result.success("该用户删除失败");
@@ -102,12 +110,32 @@ public class PointsUsersController {
     @GetMapping("/find/user")
     public Result<PointsUsers> findByUser(String username){
         PointsUsers a = pointsUsersService.findByUser(username);
-        return Result.success(a);
+        if (a != null) {
+            return Result.success(a);
+        }else {
+            return Result.error("查询错误！");
+        }
+
     }
     //根据昵称查询用户信息
     @GetMapping("/find/nickname")
     public Result<PointsUsers> findByNickName(String nickname){
         PointsUsers  u = pointsUsersService.findByNickName(nickname);
-        return Result.success(u);
+        if (u == null) {
+            return Result.error("查询错误！");
+        }
+        return Result.success("根据昵称查询用户信息",u);
+    }
+    //根据用户名或者昵称查询用户信息
+    @PostMapping("/find/userandnick")
+    public Result<PointsUsers> findByUserAndNick(@RequestBody PointFindUserAndNick pointFindUserAndNick){
+        if(pointFindUserAndNick.getNickname()!=null && pointFindUserAndNick.getUser()!=null){
+            PointsUsers u = pointsUsersService.findByUserAndBick(pointFindUserAndNick);
+            return Result.success("据用户名或者昵称查询用户信息查询成功！",u);
+        }else {
+            return Result.error("查询条件不能为空！");
+        }
+
+
     }
 }
