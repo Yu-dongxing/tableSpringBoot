@@ -7,6 +7,7 @@ import cn.dev33.satoken.stp.StpUtil;
 import cn.hutool.Hutool;
 import com.wzz.table.DTO.Result;
 import com.wzz.table.DTO.UserLoginDto;
+import com.wzz.table.DTO.UserUpdatePasswordByUserName;
 import com.wzz.table.DTO.UserUpdatePasswordDto;
 import com.wzz.table.pojo.User;
 import com.wzz.table.service.UserService;
@@ -146,6 +147,37 @@ public class userController {
         }
 
     }
-    //根据用户名修改管理用户密码
+    //根据用户名查询管理用户
+    @SaCheckRole("0")
+    @GetMapping("/find/username")
+    public Result<User> findByUserName(String name){
+        User u = userService.findByUsername(name);
+        if(u!=null){
+            return Result.success("查询成功！",u);
+        }else {
+            return Result.error("查询失败！");
+        }
 
+    }
+    //根据用户名更新密码
+    @PostMapping("/repas/username")
+    @SaCheckRole("0")
+    public Result<String> updatePasswordByuserName(@RequestBody UserUpdatePasswordByUserName userUpdatePasswordByUserName){
+        User user = userService.findByUsername(userUpdatePasswordByUserName.getUserName());
+        if (user != null) {
+            if (userUpdatePasswordByUserName.getOldPassword().equals(user.getPassword())) {
+                user.setPassword(userUpdatePasswordByUserName.getNewPassword());
+                Boolean is = userService.rePassword(user);
+                if (is) {
+                    return Result.success("更新密码成功！");
+                }else {
+                    return Result.error("更新密码失败！");
+                }
+            }else {
+                return Result.error("密码不一致，请重新输入！");
+            }
+        }else {
+            return Result.error("查询用户错误或者该用户不存在！");
+        }
+    }
 }
