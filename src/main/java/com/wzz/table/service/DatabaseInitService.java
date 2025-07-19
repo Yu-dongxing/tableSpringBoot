@@ -20,25 +20,19 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-
 @Service
 public class DatabaseInitService {
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
     public void initDatabase() throws SQLException {
-        // 自动扫描指定包路径下的所有带有@TableName注解的实体类
         List<Class<?>> entityClasses = scanEntityClasses("com.wzz.table.pojo");
 
         for (Class<?> entityClass : entityClasses) {
             TableName tableNameAnnotation = entityClass.getAnnotation(TableName.class);
             if (tableNameAnnotation != null) {
                 String tableName = tableNameAnnotation.value();
-                if (!tableExists(tableName)) {
-                    createTable(entityClass, tableName);
-                } else {
-                    updateTable(entityClass, tableName);
-                }
+                createOrUpdateTable(entityClass, tableName);
             }
         }
     }
@@ -53,6 +47,7 @@ public class DatabaseInitService {
                 Class<?> entityClass = Class.forName(beanDef.getBeanClassName());
                 entityClasses.add(entityClass);
             } catch (ClassNotFoundException e) {
+                System.err.println("Class not found: " + beanDef.getBeanClassName());
                 e.printStackTrace();
             }
         }
@@ -60,71 +55,111 @@ public class DatabaseInitService {
     }
 
     private boolean tableExists(String tableName) throws SQLException {
-        DatabaseMetaData metaData = jdbcTemplate.getDataSource().getConnection().getMetaData();
-        try (ResultSet rs = metaData.getTables(null, null, tableName, new String[]{"TABLE"})) {
-            return rs.next();
+        try {
+            DatabaseMetaData metaData = jdbcTemplate.getDataSource().getConnection().getMetaData();
+            try (ResultSet rs = metaData.getTables(null, null, tableName, new String[]{"TABLE"})) {
+                return rs.next();
+            }
+        } catch (Exception e) {
+            System.err.println("Error checking if table " + tableName + " exists: " + e.getMessage());
+            throw e;
+        }
+    }
+
+    private void createOrUpdateTable(Class<?> entityClass, String tableName) throws SQLException {
+        if (!tableExists(tableName)) {
+            createTable(entityClass, tableName);
+        } else {
+            updateTable(entityClass, tableName);
         }
     }
 
     private void createTable(Class<?> entityClass, String tableName) throws SQLException {
-        StringBuilder createTableSQL = new StringBuilder("CREATE TABLE ");
-        createTableSQL.append(tableName).append(" (");
+        try {
+            StringBuilder createTableSQL = new StringBuilder("CREATE TABLE ");
+            createTableSQL.append(tableName).append(" (");
 
-        Field[] fields = entityClass.getDeclaredFields();
-        List<String> fieldDefinitions = new ArrayList<>();
+            Field[] fields = entityClass.getDeclaredFields();
+            List<String> fieldDefinitions = new ArrayList<>();
+            boolean hasPrimaryKey = false;
 
-        for (Field field : fields) {
-            TableId tableId = field.getAnnotation(TableId.class);
-            TableField tableField = field.getAnnotation(TableField.class);
+            for (Field field : fields) {
+                TableId tableId = field.getAnnotation(TableId.class);
+                TableField tableField = field.getAnnotation(TableField.class);
 
-            String columnName;
-            String dataType;
+                String columnName;
+                String dataType;
 
-            if (tableId != null) {
-                columnName = tableId.value().isEmpty() ? field.getName() : tableId.value();
-                dataType = getDataType(field.getType());
-                fieldDefinitions.add(columnName + " " + dataType + " PRIMARY KEY AUTO_INCREMENT");
-            } else if (tableField != null) {
-                columnName = tableField.value().isEmpty() ? field.getName() : tableField.value();
-                dataType = getDataType(field.getType());
-                fieldDefinitions.add(columnName + " " + dataType);
+                if (tableId != null) {
+                    columnName = tableId.value().isEmpty() ? field.getName() : tableId.value();
+                    dataType = getDataType(field.getType());
+                    fieldDefinitions.add(columnName + " " + dataType + " PRIMARY KEY AUTO_INCREMENT");
+                    hasPrimaryKey = true;
+                } else if (tableField != null) {
+                    columnName = tableField.value().isEmpty() ? field.getName() : tableField.value();
+                    dataType = getDataType(field.getType());
+                    fieldDefinitions.add(columnName + " " + dataType);
+                }
             }
-        }
 
-        createTableSQL.append(String.join(", ", fieldDefinitions)).append(");");
-        jdbcTemplate.execute(createTableSQL.toString());
+            // 如果没有主键，添加一个默认主键
+            if (!hasPrimaryKey) {
+                fieldDefinitions.add("id BIGINT PRIMARY KEY AUTO_INCREMENT");
+            }
+
+            createTableSQL.append(String.join(", ", fieldDefinitions)).append(");");
+            jdbcTemplate.execute(createTableSQL.toString());
+            System.out.println("Created table " + tableName);
+        } catch (Exception e) {
+            System.err.println("Error creating table " + tableName + ": " + e.getMessage());
+            throw e;
+        }
     }
 
     private void updateTable(Class<?> entityClass, String tableName) throws SQLException {
-        Field[] fields = entityClass.getDeclaredFields();
-        for (Field field : fields) {
-            TableField tableField = field.getAnnotation(TableField.class);
-            if (tableField != null) {
-                String columnName = tableField.value().isEmpty() ? field.getName() : tableField.value();
-                if (!columnExists(tableName, columnName)) {
-                    String dataType = getDataType(field.getType());
-                    String addColumnSQL = "ALTER TABLE " + tableName + " ADD COLUMN " + columnName + " " + dataType + ";";
-                    jdbcTemplate.execute(addColumnSQL);
+        try {
+            Field[] fields = entityClass.getDeclaredFields();
+            for (Field field : fields) {
+                TableField tableField = field.getAnnotation(TableField.class);
+                if (tableField != null) {
+                    String columnName = tableField.value().isEmpty() ? field.getName() : tableField.value();
+                    if (!columnExists(tableName, columnName)) {
+                        String dataType = getDataType(field.getType());
+                        String addColumnSQL = "ALTER TABLE " + tableName + " ADD COLUMN " + columnName + " " + dataType + ";";
+                        try {
+                            jdbcTemplate.execute(addColumnSQL);
+                            System.out.println("Added column " + columnName + " to table " + tableName);
+                        } catch (Exception e) {
+                            System.err.println("Failed to add column " + columnName + " to table " + tableName + ": " + e.getMessage());
+                        }
+                    }
                 }
             }
+        } catch (Exception e) {
+            System.err.println("Error updating table " + tableName + ": " + e.getMessage());
+            throw e;
         }
     }
 
     private boolean columnExists(String tableName, String columnName) throws SQLException {
-        DatabaseMetaData metaData = jdbcTemplate.getDataSource().getConnection().getMetaData();
-        try (ResultSet rs = metaData.getColumns(null, null, tableName, columnName)) {
-            return rs.next();
+        try {
+            DatabaseMetaData metaData = jdbcTemplate.getDataSource().getConnection().getMetaData();
+            try (ResultSet rs = metaData.getColumns(null, null, tableName, columnName)) {
+                return rs.next();
+            }
+        } catch (Exception e) {
+            System.err.println("Error checking if column " + columnName + " exists in table " + tableName + ": " + e.getMessage());
+            throw e;
         }
     }
 
     private String getDataType(Class<?> fieldType) {
+        // 保持原有的数据类型映射逻辑
         if (fieldType.equals(String.class)) {
             return "VARCHAR(255)";
-
         } else if (fieldType.equals(LocalDateTime.class)) {
             return "DATETIME";
-        }
-        else if (fieldType.equals(Long.class) || fieldType.equals(long.class)) {
+        } else if (fieldType.equals(Long.class) || fieldType.equals(long.class)) {
             return "BIGINT";
         } else if (fieldType.equals(Integer.class) || fieldType.equals(int.class)) {
             return "INT";
@@ -139,19 +174,16 @@ public class DatabaseInitService {
         } else if (fieldType.equals(java.sql.Timestamp.class)) {
             return "TIMESTAMP";
         } else if (fieldType.equals(BigDecimal.class)) {
-            return "DECIMAL(19,2)"; // 默认精度为19，小数点后2位
+            return "DECIMAL(19,2)";
         } else if (fieldType.equals(Byte.class) || fieldType.equals(byte.class)) {
             return "TINYINT";
         } else if (fieldType.equals(Short.class) || fieldType.equals(short.class)) {
             return "SMALLINT";
         } else if (Collection.class.isAssignableFrom(fieldType)) {
-            // 假设集合类型存储为JSON字符串
             return "JSON";
         } else if (Map.class.isAssignableFrom(fieldType)) {
-            // 假设Map类型存储为JSON字符串
             return "JSON";
         } else {
-            // 对于其他未明确处理的类型，使用VARCHAR(255)作为默认值
             return "VARCHAR(255)";
         }
     }

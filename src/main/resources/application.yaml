@@ -4,7 +4,7 @@ spring:
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: jdbc:mysql://127.0.0.1:3306/table_sys
-    username: table_sys
+    username: root
     password: 123456789
     hikari:
       connection-timeout: 3000
@@ -42,7 +42,7 @@ sa-token:
   # 是否尝试从cookie里读取token
   is-read-cookie: true
   # 是否允许跨域请求
-  is-cross: true
+  #is-cross: true
   #jwt密码/Base64 编码
   jwt-secret-key: 6LWE5rqQ5bqT57O757uf
   # token前缀

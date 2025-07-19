@@ -24,7 +24,9 @@ public class Operationlog {
     //用户
     @TableField("points_user")
     private String pointsUser;
-
+    //操作类型
+    @TableField("open_ls")
+    private String openLs;
     //操作数值
     @TableField("change_num")
     private Long changeNum;

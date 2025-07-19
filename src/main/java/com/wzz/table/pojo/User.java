@@ -8,7 +8,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Data;
 
 @Data
-@TableName("user")
+@TableName("table_user")
 public class User {
     @TableId(type = IdType.AUTO)
     private Long id;
@@ -20,6 +20,6 @@ public class User {
     @TableField("password")
     private String password;
 
-    @TableField("role")
+    @TableField("user_role")
     private int role;//0:老板，1：管理员
 }

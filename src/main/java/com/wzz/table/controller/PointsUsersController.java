@@ -27,7 +27,7 @@ public class PointsUsersController {
         if (p == null) {
             Boolean is_add = pointsUsersService.add(pointsUsers);
             if (is_add) {
-                operationlogUtil.add(pointsUsers.getUser(), pointsUsers.getPoints());
+                operationlogUtil.add(pointsUsers.getUser(), pointsUsers.getPoints(),"添加用户");
                 return Result.success("添加积分用户成功！");
             }else {
                 return Result.success("添加积分用户失败！");
@@ -40,11 +40,27 @@ public class PointsUsersController {
             Boolean is_update = pointsUsersService.update(p);
 
             if (is_update) {
-                operationlogUtil.add(p.getUser(), pointsUsers.getPoints());
+                operationlogUtil.add(p.getUser(), pointsUsers.getPoints(),"重置积分");
                 return Result.success("积分用户更新成功");
             }else {
                 return Result.success("积分用户更新失败");
             }
+        }
+    }
+    //添加积分用户
+    @PostMapping("/add/user")
+    public Result<String> addPointUser(@RequestBody PointsUsers pointsUsers){
+        PointsUsers p = pointsUsersService.findByUser(pointsUsers.getUser());
+        if (p == null) {
+            Boolean is_add = pointsUsersService.add(pointsUsers);
+            if (is_add) {
+                operationlogUtil.add(pointsUsers.getUser(), pointsUsers.getPoints(),"添加积分用户");
+                return Result.success("添加积分用户成功！");
+            }else {
+                return Result.success("添加积分用户失败！");
+            }
+        }else {
+            return Result.error("该用户已存在！");
         }
     }
     //增加积分
@@ -57,7 +73,7 @@ public class PointsUsersController {
             p.setPoints(p.getPoints() + point);
             Boolean is_update = pointsUsersService.update(p);
             if (is_update) {
-                operationlogUtil.add(p.getUser(), point);
+                operationlogUtil.add(p.getUser(), point,"增加");
                 return Result.success("积分增加成功！");
             }else {
                 return Result.success("积分增加失败！");
@@ -78,7 +94,7 @@ public class PointsUsersController {
             p.setPoints(p.getPoints() - point);
             Boolean is_update = pointsUsersService.update(p);
             if (is_update) {
-                operationlogUtil.add(p.getUser(), point);
+                operationlogUtil.add(p.getUser(), point,"减少");
                 return Result.success("积分减少成功！");
             }else {
                 return Result.success("积分减少失败！");

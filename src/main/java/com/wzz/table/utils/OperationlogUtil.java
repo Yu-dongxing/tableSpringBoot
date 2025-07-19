@@ -18,15 +18,18 @@ public class OperationlogUtil {
     private PointsUsersService pointsUsersService;
     //user points_user  change       points           time
     //管理员  用户          操作数值      操作后数值   操作时间
+    //操作类型
     public void add(
             String points_user,
-            Long change
+            Long change,
+            String czlx
     ) {
         Operationlog operationlog = new Operationlog();
         operationlog.setCrTime(LocalDateTime.now());
         String userNa = StpUtil.getExtra("username").toString();
         operationlog.setAdminUser(userNa);
         operationlog.setChangeNum(change);
+        operationlog.setOpenLs(czlx);
         PointsUsers us = pointsUsersService.findByUser(points_user);
         if (us == null) {
             System.out.println("没有该用户");
@@ -51,10 +54,11 @@ public class OperationlogUtil {
         String userNa = StpUtil.getExtra("username").toString();
         operationlog.setAdminUser(userNa);
         operationlog.setChangeNum(0L);
+        operationlog.setOpenLs("删除积分用户");
         PointsUsers us = pointsUsersService.findByUser(points_user);
         if (us == null) {
             System.out.println("没有该用户");
-            operationlog.setPointsUser("删除该用户："+points_user);
+            operationlog.setPointsUser(points_user);
             operationlog.setPoints(0L);
         }else {
             operationlog.setPoints(us.getPoints());
