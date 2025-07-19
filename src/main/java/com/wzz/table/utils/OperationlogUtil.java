@@ -42,4 +42,29 @@ public class OperationlogUtil {
             System.out.println("操作日志添加失败？");
         }
     }
+    public void del(
+            String points_user,
+            String ope
+    ){
+        Operationlog operationlog = new Operationlog();
+        operationlog.setCrTime(LocalDateTime.now());
+        String userNa = StpUtil.getExtra("username").toString();
+        operationlog.setAdminUser(userNa);
+        operationlog.setChangeNum(0L);
+        PointsUsers us = pointsUsersService.findByUser(points_user);
+        if (us == null) {
+            System.out.println("没有该用户");
+            operationlog.setPointsUser("删除该用户："+points_user);
+            operationlog.setPoints(0L);
+        }else {
+            operationlog.setPoints(us.getPoints());
+            operationlog.setPointsUser(us.getUser());
+        }
+        Boolean is_add = operationlogService.add(operationlog);
+        if (is_add) {
+            System.out.println("操作日志添加成功！");
+        }else {
+            System.out.println("操作日志添加失败？");
+        }
+    }
 }
