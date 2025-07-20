@@ -110,6 +110,9 @@ public class userController {
     @SaCheckRole("0")
     @PostMapping("/delete")
     public Result<String> deleteByUser(String username) {
+        if(StpUtil.getExtra("username").equals(username)){
+            return Result.error("禁止删除当前登录用户！");
+        }
         User user = userService.findByUsername(username);
         if (user != null) {
             Boolean is_d = userService.deleteByid(user);
