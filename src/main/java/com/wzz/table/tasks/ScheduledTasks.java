@@ -12,7 +12,7 @@ public class ScheduledTasks {
     @Autowired
     private FinancialRecordService financialRecordService;
 
-    @Scheduled(cron = "0 0/1 * * * ? ")
+    @Scheduled(cron = "0 0 7 * * ? ")
     public void executeTask() {
         Boolean is = financialRecordService.cleanupOldData();
         System.out.println("定时任务执行，时间：" + new Date()+"，是否执行成功："+is);
