@@ -20,7 +20,7 @@ public class FinancialRecord {
     private int ids;
     // 批次
     @TableField("batch")
-    private String batch;
+    private Long batch;
     //标记
     @TableField("make")
     private String make;
@@ -32,7 +32,7 @@ public class FinancialRecord {
     private int quantity;
     // 金额
     @TableField("price")
-    private Long price;
+    private Double price;
     // 订单数量
     @TableField("orders")
     private int orders;

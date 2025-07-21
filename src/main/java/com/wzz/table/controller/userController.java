@@ -166,9 +166,10 @@ public class userController {
     @PostMapping("/repas/username")
     @SaCheckRole("0")
     public Result<String> updatePasswordByuserName(@RequestBody UserUpdatePasswordByUserName userUpdatePasswordByUserName){
+        System.out.println(userUpdatePasswordByUserName);
         User user = userService.findByUsername(userUpdatePasswordByUserName.getUserName());
         if (user != null) {
-            if (userUpdatePasswordByUserName.getOldPassword().equals(user.getPassword())) {
+//            if (userUpdatePasswordByUserName.getOldPassword().equals(user.getPassword())) {
                 user.setPassword(userUpdatePasswordByUserName.getNewPassword());
                 Boolean is = userService.rePassword(user);
                 if (is) {
@@ -176,9 +177,9 @@ public class userController {
                 }else {
                     return Result.error("更新密码失败！");
                 }
-            }else {
-                return Result.error("密码不一致，请重新输入！");
-            }
+//            }else {
+//                return Result.error("密码不一致，请重新输入！");
+//            }
         }else {
             return Result.error("查询用户错误或者该用户不存在！");
         }

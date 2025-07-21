@@ -41,9 +41,9 @@ public class PointsUsersController {
 
             if (is_update) {
                 operationlogUtil.add(p.getUser(), pointsUsers.getPoints(),"重置积分");
-                return Result.success("积分用户更新成功");
+                return Result.success("积分用户的积分重置成功");
             }else {
-                return Result.success("积分用户更新失败");
+                return Result.success("积分用户的积分重置失败");
             }
         }
     }

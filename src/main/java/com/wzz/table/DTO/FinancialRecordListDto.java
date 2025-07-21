@@ -10,7 +10,7 @@ public class FinancialRecordListDto {
     // 件数
     private int quantity;
     // 金额
-    private Long price;
+    private Double price;
     // 订单数量
     private int orders;
     // 金额变动
