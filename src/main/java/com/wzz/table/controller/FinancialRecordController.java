@@ -6,6 +6,8 @@ import com.wzz.table.DTO.FinancialRecordListDto;
 import com.wzz.table.DTO.Result;
 import com.wzz.table.pojo.FinancialRecord;
 import com.wzz.table.service.FinancialRecordService;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -20,6 +22,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/financialrecord")
 public class FinancialRecordController {
+    private static final Logger log = LogManager.getLogger(FinancialRecordController.class);
     @Autowired
     private FinancialRecordService financialRecordService;
     private final Object syncLock = new Object(); // 用于线程锁的对象
@@ -47,9 +50,9 @@ public class FinancialRecordController {
 
                 Boolean is = financialRecordService.add(f);
                 if(is){
-                    System.out.println("插入成功");
+                    log.info("插入成功！"+f.toString());
                 }else {
-                    System.out.println("插入错误");
+                    log.error("插入错误！"+f.toString());
                 }
             }
             return Result.success("成功，返回当前批次ID", batchSize.toString());

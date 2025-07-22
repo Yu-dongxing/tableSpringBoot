@@ -14,8 +14,6 @@ import java.time.LocalDateTime;
 public class csController {
     @GetMapping("/get")
     public Result<String> cs (){
-        LocalDateTime sixAm = LocalDateTime.now().withHour(6).withMinute(0).withSecond(0).withNano(0);
-        System.out.println(sixAm);
         return Result.success("成功");
     }
 }

@@ -3,6 +3,8 @@ package com.wzz.table.auth;
 import cn.dev33.satoken.stp.StpInterface;
 import com.wzz.table.pojo.User;
 import com.wzz.table.service.UserService;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -11,6 +13,7 @@ import java.util.List;
 
 @Component
 public class StpInterfaceImpl implements StpInterface {
+    private static final Logger log = LogManager.getLogger(StpInterfaceImpl.class);
     @Autowired
     private UserService userService;
 
@@ -53,10 +56,10 @@ public class StpInterfaceImpl implements StpInterface {
         }
         User u = userService.findById(longId);
         if (u == null) {
-            System.err.println("<UNK> <UNK> Long");
+            log.info("没有用户");
             return null;
         }else {
-            System.out.println(u);
+            log.info("需要角色："+u.toString());
             List<String> list = new ArrayList<String>();
             list.add(String.valueOf(u.getRole()));
             return list;

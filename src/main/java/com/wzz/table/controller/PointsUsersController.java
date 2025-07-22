@@ -27,7 +27,7 @@ public class PointsUsersController {
         if (p == null) {
             Boolean is_add = pointsUsersService.add(pointsUsers);
             if (is_add) {
-                operationlogUtil.add(pointsUsers.getUser(), pointsUsers.getPoints(),"添加用户");
+                operationlogUtil.add(pointsUsers.getUser(), pointsUsers.getPoints(),"添加");
                 return Result.success("添加积分用户成功！");
             }else {
                 return Result.success("添加积分用户失败！");
@@ -40,7 +40,7 @@ public class PointsUsersController {
             Boolean is_update = pointsUsersService.update(p);
 
             if (is_update) {
-                operationlogUtil.add(p.getUser(), pointsUsers.getPoints(),"重置积分");
+                operationlogUtil.add(p.getUser(), pointsUsers.getPoints(),"重置");
                 return Result.success("积分用户的积分重置成功");
             }else {
                 return Result.success("积分用户的积分重置失败");
@@ -54,7 +54,7 @@ public class PointsUsersController {
         if (p == null) {
             Boolean is_add = pointsUsersService.add(pointsUsers);
             if (is_add) {
-                operationlogUtil.add(pointsUsers.getUser(), pointsUsers.getPoints(),"添加积分用户");
+                operationlogUtil.add(pointsUsers.getUser(), pointsUsers.getPoints(),"添加");
                 return Result.success("添加积分用户成功！");
             }else {
                 return Result.success("添加积分用户失败！");

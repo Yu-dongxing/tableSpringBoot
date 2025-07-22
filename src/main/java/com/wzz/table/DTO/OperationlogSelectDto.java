@@ -17,13 +17,9 @@ public class OperationlogSelectDto {
     //操作类型
     private String openLs;
     //开始时间
-    @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
-    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
-    private LocalDateTime startTime;
+    private String startTime;
     //结束时间
-    @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
-    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
-    private LocalDateTime endTime;
+    private String endTime;
     //页码
     @JsonProperty(defaultValue = "1") // 默认值为1
     private int page;

@@ -136,7 +136,10 @@ public class userController {
     @GetMapping("/find/userid")
     public Result<User> findByUserId(@RequestBody Long userId){
         User u = userService.findById(userId);
-        return Result.success("查询成功",u);
+        if (u != null) {
+            return Result.success("查询成功",u);
+        }
+        return Result.error("查询错误");
     }
     @SaCheckRole("0")
     //查询所有管理用户
