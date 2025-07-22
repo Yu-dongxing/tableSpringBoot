@@ -1,8 +1,10 @@
 package com.wzz.table.service;
 
+import com.wzz.table.DTO.BatchData;
 import com.wzz.table.pojo.FinancialRecord;
 
 import java.util.List;
+import java.util.Map;
 
 public interface FinancialRecordService {
     Boolean add(FinancialRecord f);
@@ -16,4 +18,6 @@ public interface FinancialRecordService {
     List<String> findBatchIdsByMark(String mark);
 
     Boolean cleanupOldData();
+
+    Map<String, BatchData> findAllBatchesWithDetails();
 }

@@ -1,6 +1,7 @@
 package com.wzz.table.controller;
 
 import cn.dev33.satoken.annotation.SaCheckRole;
+import com.wzz.table.DTO.BatchData;
 import com.wzz.table.DTO.FinancialRecordDto;
 import com.wzz.table.DTO.FinancialRecordListDto;
 import com.wzz.table.DTO.Result;
@@ -100,5 +101,11 @@ public class RootFinancialRecordController {
         }
 
         return Result.success("查询成功", batchRecordMap);
+    }
+    //返回根据批次分组的数据
+    @GetMapping("/find/batch/list")
+    public Result<Map<String, BatchData>> findByBatchList(){
+        Map<String, BatchData> l = financialRecordService.findAllBatchesWithDetails();
+        return Result.success(l);
     }
 }

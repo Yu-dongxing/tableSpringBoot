@@ -1,8 +1,8 @@
 package com.wzz.table.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
+import com.wzz.table.DTO.BatchData;
 import com.wzz.table.mapper.FinancialRecordBatchMapper;
 import com.wzz.table.mapper.FinancialRecordMapper;
 import com.wzz.table.pojo.FinancialRecord;
@@ -11,7 +11,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -85,5 +87,44 @@ public class FinancialRecordServiceImpl implements FinancialRecordService {
         }else {
             return false;
         }
+    }
+    /**
+     * 核心方法更新：查询所有批次，并统计每个批次的数据条数和总金额
+     */
+    @Override
+    public Map<String, BatchData> findAllBatchesWithDetails() {
+        // 1. 一次性从数据库查询出所有记录
+        List<FinancialRecord> allRecords = financialRecordMapper.selectList(null);
+        if (allRecords == null || allRecords.isEmpty()) {
+            return Collections.emptyMap();
+        }
+
+        // 2. 根据 batch 字段对所有记录进行分组
+        Map<Long, List<FinancialRecord>> groupedByBatchId = allRecords.stream()
+                .collect(Collectors.groupingBy(FinancialRecord::getBatch));
+
+        // 3. 将分组后的 Map 转换为最终需要的包含统计数据的结构
+        return groupedByBatchId.entrySet().stream()
+                .collect(Collectors.toMap(
+                        // Map的键：将批次ID (Long) 转换为 String
+                        entry -> entry.getKey().toString(),
+
+                        // Map的值：为每个批次创建一个新的BatchData对象
+                        entry -> {
+                            // 获取当前批次的所有记录列表
+                            List<FinancialRecord> recordsInBatch = entry.getValue();
+
+                            // 新增逻辑：计算总金额
+                            // 使用stream流处理，先过滤掉price可能为null的记录（增加代码健壮性），
+                            // 然后将每个FinancialRecord对象的price映射为Double值，最后求和。
+                            double sumOfPrice = recordsInBatch.stream()
+                                    .filter(record -> record.getPrice() != null)
+                                    .mapToDouble(FinancialRecord::getPrice)
+                                    .sum();
+
+                            // 创建并返回包含总条数、总金额和数据列表的BatchData对象
+                            return new BatchData(recordsInBatch.size(), sumOfPrice, recordsInBatch);
+                        }
+                ));
     }
 }
