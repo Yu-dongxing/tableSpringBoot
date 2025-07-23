@@ -3,12 +3,15 @@ package com.wzz.table.exception;
 import cn.dev33.satoken.exception.SaTokenException;
 import com.wzz.table.DTO.Result;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.validation.BindException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 @Slf4j
 @RestControllerAdvice
@@ -77,10 +80,16 @@ public class GlobalExceptionHandler {
         return Result.error(e.getCode(), e.getMessage());
     }
 
+    @ExceptionHandler(NoResourceFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND) // 设置HTTP状态码为404
+    public Result<?> handleNoResourceFoundException(NoResourceFoundException e) {
+        log.warn("资源未找到：{}", e.getMessage());
+        return Result.error(404, "您访问的资源不存在");
+    }
     // 全局异常兜底
     @ExceptionHandler(Exception.class)
     public Result<?> handleAllException(Exception e) {
-        log.error("服务器未知异常:", e);
-        return Result.error(500, "系统繁忙，请稍后再试");
+        log.error("服务器未知异常:{}", e);
+        return Result.error(500, "系统繁未知错误，请稍后再试");
     }
 }

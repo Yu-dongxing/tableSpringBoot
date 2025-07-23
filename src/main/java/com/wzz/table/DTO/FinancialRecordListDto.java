@@ -3,10 +3,14 @@ package com.wzz.table.DTO;
 import com.baomidou.mybatisplus.annotation.TableField;
 import lombok.Data;
 
+import java.time.LocalDateTime;
+
 @Data
 public class FinancialRecordListDto {
     // 操作员昵称
     private String name;
+    //操作用户id
+    private Long userId;
     // 件数
     private int quantity;
     // 金额
@@ -20,5 +24,5 @@ public class FinancialRecordListDto {
     // 当前金额
     private Long balance;
     // 创建时间
-    private Long crTime;
+    private String crTime;
 }

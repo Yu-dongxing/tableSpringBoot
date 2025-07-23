@@ -27,6 +27,9 @@ public class FinancialRecord {
     // 操作员昵称
     @TableField("name")
     private String name;
+    //操作员id
+    @TableField("user_id")
+    private Long userId;
     // 件数
     @TableField("quantity")
     private int quantity;

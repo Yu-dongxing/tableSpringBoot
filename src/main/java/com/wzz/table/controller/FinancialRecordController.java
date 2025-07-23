@@ -1,11 +1,14 @@
 package com.wzz.table.controller;
 
 import cn.dev33.satoken.annotation.SaCheckRole;
+import cn.hutool.core.util.StrUtil;
 import com.wzz.table.DTO.FinancialRecordDto;
 import com.wzz.table.DTO.FinancialRecordListDto;
 import com.wzz.table.DTO.Result;
+import com.wzz.table.exception.BusinessException;
 import com.wzz.table.pojo.FinancialRecord;
 import com.wzz.table.service.FinancialRecordService;
+import com.wzz.table.utils.DateTimeUtil;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,7 +25,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/financialrecord")
 public class FinancialRecordController {
-    private static final Logger log = LogManager.getLogger(FinancialRecordController.class);
+    private static final Logger log = LogManager.getLogger(RootFinancialRecordController.class);
     @Autowired
     private FinancialRecordService financialRecordService;
     private final Object syncLock = new Object(); // 用于线程锁的对象
@@ -34,6 +37,7 @@ public class FinancialRecordController {
 
             //String baId = generateBatchId();
             for (FinancialRecordListDto item : financialRecordDto.getData()) {
+                LocalDateTime crTime = null;
                 FinancialRecord f = new FinancialRecord();
                 f.setMake(financialRecordDto.getMake());
                 f.setIds(financialRecordDto.getIds());
@@ -45,14 +49,20 @@ public class FinancialRecordController {
                 f.setLastBalance(item.getLastBalance());
                 f.setOrders(item.getOrders());
                 f.setPrice(item.getPrice());
-                f.setCrTime(LocalDateTime.now());
+                f.setUserId(item.getUserId());
                 f.setBatch(batchSize);
-
+                if(!StrUtil.hasBlank(item.getCrTime())){
+                    crTime = DateTimeUtil.parseDateTime(item.getCrTime());
+                }else {
+                    crTime = LocalDateTime.now();
+                }
+                f.setCrTime(crTime);
                 Boolean is = financialRecordService.add(f);
                 if(is){
-                    log.info("插入成功！"+f.toString());
+                    log.info("插入成功数据{}",f.toString());
                 }else {
-                    log.error("插入错误！"+f.toString());
+
+                    log.info("插入错误,数据{}",f.toString());
                 }
             }
             return Result.success("成功，返回当前批次ID", batchSize.toString());
@@ -104,5 +114,11 @@ public class FinancialRecordController {
         }
 
         return Result.success("查询成功", batchRecordMap);
+    }
+    //返回根据批次分组的数据
+    @GetMapping("/find/batch/list")
+    public Result<Map<String, Object>> findByBatchList(){
+        Map<String, Object> l = financialRecordService.findAllBatchesWithDetails();
+        return Result.success(l);
     }
 }

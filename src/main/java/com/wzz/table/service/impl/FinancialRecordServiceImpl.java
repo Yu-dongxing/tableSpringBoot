@@ -2,7 +2,7 @@ package com.wzz.table.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
-import com.wzz.table.DTO.BatchData;
+import com.wzz.table.DTO.BatchInfo;
 import com.wzz.table.mapper.FinancialRecordBatchMapper;
 import com.wzz.table.mapper.FinancialRecordMapper;
 import com.wzz.table.pojo.FinancialRecord;
@@ -10,11 +10,11 @@ import com.wzz.table.service.FinancialRecordService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
+import java.util.*;
+        import java.util.stream.Collectors;
 
 @Service
 public class FinancialRecordServiceImpl implements FinancialRecordService {
@@ -89,42 +89,80 @@ public class FinancialRecordServiceImpl implements FinancialRecordService {
         }
     }
     /**
-     * 核心方法更新：查询所有批次，并统计每个批次的数据条数和总金额
+     * 核心方法更新：查询所有批次，并统计每个批次的数据条数、总金额，
+     * 并找出 changes 最大的记录所对应的 userId、make，以及批次内最大的 price 和最新的时间。
      */
     @Override
-    public Map<String, BatchData> findAllBatchesWithDetails() {
+    public Map<String, Object> findAllBatchesWithDetails() {
         // 1. 一次性从数据库查询出所有记录
         List<FinancialRecord> allRecords = financialRecordMapper.selectList(null);
         if (allRecords == null || allRecords.isEmpty()) {
-            return Collections.emptyMap();
+            return Collections.singletonMap("batch", Collections.emptyList());
         }
 
         // 2. 根据 batch 字段对所有记录进行分组
         Map<Long, List<FinancialRecord>> groupedByBatchId = allRecords.stream()
                 .collect(Collectors.groupingBy(FinancialRecord::getBatch));
 
-        // 3. 将分组后的 Map 转换为最终需要的包含统计数据的结构
-        return groupedByBatchId.entrySet().stream()
-                .collect(Collectors.toMap(
-                        // Map的键：将批次ID (Long) 转换为 String
-                        entry -> entry.getKey().toString(),
+        // 3. 将分组后的 Map 转换为最终需要的包含批次详情的 List<BatchInfo>
+        List<BatchInfo> batchInfoList = groupedByBatchId.entrySet().stream()
+                .map(entry -> {
+                    Long batchId = entry.getKey();
+                    List<FinancialRecord> recordsInBatch = entry.getValue();
 
-                        // Map的值：为每个批次创建一个新的BatchData对象
-                        entry -> {
-                            // 获取当前批次的所有记录列表
-                            List<FinancialRecord> recordsInBatch = entry.getValue();
+                    // 使用 BigDecimal 计算总金额，保证精度
+                    BigDecimal totalPrice = recordsInBatch.stream()
+                            .map(FinancialRecord::getPrice)
+                            .filter(Objects::nonNull)
+                            .map(String::valueOf)
+                            .map(BigDecimal::new)
+                            .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-                            // 新增逻辑：计算总金额
-                            // 使用stream流处理，先过滤掉price可能为null的记录（增加代码健壮性），
-                            // 然后将每个FinancialRecord对象的price映射为Double值，最后求和。
-                            double sumOfPrice = recordsInBatch.stream()
-                                    .filter(record -> record.getPrice() != null)
-                                    .mapToDouble(FinancialRecord::getPrice)
-                                    .sum();
+                    // 查找批次内 `changes` 值最大的记录
+                    Optional<FinancialRecord> recordWithMaxChanges = recordsInBatch.stream()
+                            .filter(r -> r.getChanges() != null)
+                            .max(Comparator.comparing(FinancialRecord::getChanges));
 
-                            // 创建并返回包含总条数、总金额和数据列表的BatchData对象
-                            return new BatchData(recordsInBatch.size(), sumOfPrice, recordsInBatch);
-                        }
-                ));
+                    // 从 `changes` 最大的记录中获取 userId, make 和 maxChanges
+                    // 如果找不到，则提供默认值
+                    Long userIdWithMaxChanges = recordWithMaxChanges.map(FinancialRecord::getUserId).orElse(0L);
+                    String make = recordWithMaxChanges.map(FinancialRecord::getMake).orElse("0");
+                    Long maxChanges = recordWithMaxChanges.map(FinancialRecord::getChanges).orElse(0L);
+
+                    // 查找批次内最大的 `price`
+                    Double maxPrice = recordsInBatch.stream()
+                            .map(FinancialRecord::getPrice)
+                            .filter(Objects::nonNull)
+                            .mapToDouble(Double::doubleValue)
+                            .max()
+                            .orElse(0.0);
+
+                    // 查找批次内最新的 `crTime`
+                    LocalDateTime latestTime = recordsInBatch.stream()
+                            .map(FinancialRecord::getCrTime)
+                            .filter(Objects::nonNull)
+                            .max(LocalDateTime::compareTo)
+                            .orElse(null);
+
+                    // 创建并返回包含所有所需信息的 BatchInfo 对象
+                    return new BatchInfo(
+                            batchId,
+                            recordsInBatch.size(),
+                            totalPrice.setScale(2, RoundingMode.HALF_UP).doubleValue(),
+                            userIdWithMaxChanges,
+                            make,
+                            latestTime,
+                            maxChanges,
+                            maxPrice,
+                            recordsInBatch
+                    );
+                })
+                .sorted(Comparator.comparing(BatchInfo::getBatchId)) // 可选：按 batchId 排序
+                .collect(Collectors.toList());
+
+        // 4. 构建最终的返回结果
+        Map<String, Object> result = new HashMap<>();
+        result.put("batch", batchInfoList);
+        return result;
     }
 }
