@@ -3,7 +3,6 @@ package com.wzz.table.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.wzz.table.DTO.BatchInfo;
-import com.wzz.table.mapper.FinancialRecordBatchMapper;
 import com.wzz.table.mapper.FinancialRecordMapper;
 import com.wzz.table.pojo.FinancialRecord;
 import com.wzz.table.service.FinancialRecordService;
@@ -20,16 +19,10 @@ import java.util.*;
 public class FinancialRecordServiceImpl implements FinancialRecordService {
     @Autowired
     private FinancialRecordMapper financialRecordMapper;
-    @Autowired
-    private FinancialRecordBatchMapper financialRecordBatchMapper;
     @Override
     public Boolean add(FinancialRecord f) {
         int i = financialRecordMapper.insert(f);
-        if (i > 0) {
-            return true;
-        }else {
-            return false;
-        }
+        return i > 0;
     }
 
     @Override
@@ -82,11 +75,7 @@ public class FinancialRecordServiceImpl implements FinancialRecordService {
         updateWrapper.lt(FinancialRecord::getCrTime, sixAm);
         // 执行删除操作
         int n = financialRecordMapper.delete(updateWrapper);
-        if (n > 0) {
-            return true;
-        }else {
-            return false;
-        }
+        return n > 0;
     }
     /**
      * 核心方法更新：查询所有批次，并统计每个批次的数据条数、总金额，
@@ -160,7 +149,7 @@ public class FinancialRecordServiceImpl implements FinancialRecordService {
                 .sorted(Comparator.comparing(BatchInfo::getBatchId)) // 可选：按 batchId 排序
                 .collect(Collectors.toList());
 
-        // 4. 构建最终的返回结果
+        // 4. 构建最终返回结果
         Map<String, Object> result = new HashMap<>();
         result.put("batch", batchInfoList);
         return result;
