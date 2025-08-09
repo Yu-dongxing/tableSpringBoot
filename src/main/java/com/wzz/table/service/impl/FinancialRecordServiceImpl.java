@@ -6,17 +6,27 @@ import com.wzz.table.DTO.BatchInfo;
 import com.wzz.table.mapper.FinancialRecordMapper;
 import com.wzz.table.pojo.FinancialRecord;
 import com.wzz.table.service.FinancialRecordService;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import javax.imageio.ImageIO;
+import java.awt.*;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
-        import java.util.stream.Collectors;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class FinancialRecordServiceImpl implements FinancialRecordService {
+    private static final Logger log = LogManager.getLogger(FinancialRecordServiceImpl.class);
     @Autowired
     private FinancialRecordMapper financialRecordMapper;
     @Override
@@ -154,4 +164,134 @@ public class FinancialRecordServiceImpl implements FinancialRecordService {
         result.put("batch", batchInfoList);
         return result;
     }
+
+    /**
+     * 新增方法：根据批次ID查询数据
+     */
+    @Override
+    public List<FinancialRecord> findRecordsByBatchId(Long batchId) {
+        // 使用 MyBatis Plus 的 QueryWrapper 根据 batchId 进行查询
+        return financialRecordMapper.selectList(
+                new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<FinancialRecord>()
+                        .eq("batch", batchId)
+        );
+    }
+
+
+    /**
+     * 新增方法：生成图片Base64
+     * (版本 3: 绘制完整的表格网格，包含所有横线和竖线)
+     */
+    @Override
+    public String generateRecordsImageBase64(List<FinancialRecord> records) {
+        if (records == null || records.isEmpty()) {
+            return ""; // 或者返回一个表示“无数据”的图片Base64
+        }
+
+        // --- 1. 定义图片和表格的尺寸、样式 ---
+        int rowHeight = 30;
+        int padding = 20;
+
+        // 根据您代码中的注释，更新了表头，使其更具可读性
+        String[] headers = {"a", "b", "c", "d", "e", "f", "g","h"};
+        int[] columnWidths = {50, 60, 80, 80, 80, 150, 200,200};
+
+        // 根据列宽计算总宽度
+        int tableWidth = 0;
+        for (int width : columnWidths) {
+            tableWidth += width;
+        }
+
+        int tableHeight = rowHeight * (records.size() + 1); // +1 是为了表头
+        int imageWidth = tableWidth + 2 * padding;
+        int imageHeight = tableHeight + 2 * padding;
+
+        Font headerFont = new Font("SimSun", Font.BOLD, 14); // 使用宋体以更好地支持中文
+        Font bodyFont = new Font("Arial", Font.PLAIN, 12);
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+
+        // --- 2. 创建画布 ---
+        BufferedImage image = new BufferedImage(imageWidth, imageHeight, BufferedImage.TYPE_INT_RGB);
+        Graphics2D g2d = image.createGraphics();
+
+        // 填充背景色
+        g2d.setColor(Color.WHITE);
+        g2d.fillRect(0, 0, imageWidth, imageHeight);
+
+        // 开启抗锯齿，使文字和线条更平滑
+        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+
+        g2d.setColor(Color.BLACK);
+        g2d.translate(padding, padding); // 设置绘制内容的起始坐标（即留出边距）
+
+        // --- 3. 绘制表头和数据行文字 ---
+        // 绘制表头
+        g2d.setFont(headerFont);
+        int currentX = 0;
+        for (int i = 0; i < headers.length; i++) {
+            // 居中绘制表头文字
+            FontMetrics fm = g2d.getFontMetrics();
+            int textWidth = fm.stringWidth(headers[i]);
+            g2d.drawString(headers[i], currentX + (columnWidths[i] - textWidth) / 2, rowHeight - 10);
+            currentX += columnWidths[i];
+        }
+
+        // 绘制数据行
+        g2d.setFont(bodyFont);
+        for (int i = 0; i < records.size(); i++) {
+            FinancialRecord record = records.get(i);
+            int currentY = rowHeight * (i + 1);
+            currentX = 0;
+
+            String[] rowData = {
+                    //序号，操作员，件数，金额，单z,变动，变动前金额，当前金额
+                    String.valueOf(record.getId()),//序号
+                    String.valueOf(record.getUserId()),//操作员
+                    String.valueOf(record.getQuantity()),//件数
+                    record.getPrice() != null ? String.format("%.2f", record.getPrice()) : "N/A",//金额
+                    String.valueOf(record.getOrders()),//订单数量
+                    record.getChanges() != null ? String.valueOf(record.getChanges()) : "N/A",//变动
+                    String.valueOf(record.getLastBalance()),//变动前金额
+                    String.valueOf(record.getBalance())//当前金额
+            };
+
+            for (int j = 0; j < rowData.length; j++) {
+                g2d.drawString(rowData[j], currentX + 5, currentY + rowHeight - 10);
+                currentX += columnWidths[j];
+            }
+        }
+
+        // --- 4. 绘制完整的表格网格线 ---
+        // (这是修改的核心部分)
+
+        // 绘制所有横线
+        int numRows = records.size() + 1; // 总行数 = 表头(1) + 数据行数
+        for (int i = 0; i <= numRows; i++) {
+            int y = i * rowHeight;
+            g2d.drawLine(0, y, tableWidth, y);
+        }
+
+        // 绘制所有竖线
+        currentX = 0;
+        g2d.drawLine(0, 0, 0, tableHeight); // 绘制最左侧的竖线
+        for (int width : columnWidths) {
+            currentX += width;
+            g2d.drawLine(currentX, 0, currentX, tableHeight); // 绘制每列右侧的竖线
+        }
+
+        g2d.dispose();
+
+        // --- 5. 将图片转换为Base64字符串 ---
+        try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+            ImageIO.write(image, "png", baos);
+            byte[] bytes = baos.toByteArray();
+            return "data:image/png;base64," + Base64.getEncoder().encodeToString(bytes);
+        } catch (IOException e) {
+             log.info("生成图片Base64时出错: {}", e.getMessage()); // 建议使用日志框架记录错误
+//            e.printStackTrace();
+            return ""; // 或者抛出自定义异常
+        }
+    }
+
 }

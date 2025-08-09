@@ -21,4 +21,7 @@ public interface FinancialRecordService {
     Map<String, Object> findAllBatchesWithDetails();
 
 
+    List<FinancialRecord> findRecordsByBatchId(Long batchId);
+
+    String generateRecordsImageBase64(List<FinancialRecord> records);
 }
