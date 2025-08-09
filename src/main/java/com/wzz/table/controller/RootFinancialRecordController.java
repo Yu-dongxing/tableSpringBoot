@@ -117,4 +117,29 @@ public class RootFinancialRecordController {
         Map<String, Object> l = financialRecordService.findAllBatchesWithDetails();
         return Result.success(l);
     }
+    /**
+     * 根据批次ID查询数据，并返回图片Base64
+     * URL示例: /financial-record/find/batch/image/1001
+     *
+     * @param batchId 批次ID
+     * @return 包含图片Base64字符串的Result对象
+     */
+    @GetMapping("/find/batch/image/{batchId}")
+    public Result<?> findBatchAsImage(@PathVariable("batchId") Long batchId) {
+        // 1. 根据 batchId 查询数据
+        List<FinancialRecord> records = financialRecordService.findRecordsByBatchId(batchId);
+
+        if (records == null || records.isEmpty()) {
+            return Result.error("No data found for batchId: " + batchId); // 或者返回成功的空数据
+        }
+
+        // 2. 生成图片的Base64编码
+        String base64Image = financialRecordService.generateRecordsImageBase64(records);
+
+        // 3. 构建返回结果
+        Map<String, String> response = new HashMap<>();
+        response.put("imageBase64", base64Image);
+
+        return Result.success(response);
+    }
 }
