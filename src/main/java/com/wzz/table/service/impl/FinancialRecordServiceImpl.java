@@ -180,7 +180,7 @@ public class FinancialRecordServiceImpl implements FinancialRecordService {
 
     /**
      * 新增方法：生成图片Base64
-     * (版本 3: 绘制完整的表格网格，包含所有横线和竖线)
+     * (版本 4: 将a列和b列的数据文本颜色改为蓝色)
      */
     @Override
     public String generateRecordsImageBase64(List<FinancialRecord> records) {
@@ -196,17 +196,16 @@ public class FinancialRecordServiceImpl implements FinancialRecordService {
         String[] headers = {"a", "b", "c", "d", "e", "f", "g","h"};
         int[] columnWidths = {50, 60, 80, 80, 80, 150, 200,200};
 
-        // 根据列宽计算总宽度
         int tableWidth = 0;
         for (int width : columnWidths) {
             tableWidth += width;
         }
 
-        int tableHeight = rowHeight * (records.size() + 1); // +1 是为了表头
+        int tableHeight = rowHeight * (records.size() + 1);
         int imageWidth = tableWidth + 2 * padding;
         int imageHeight = tableHeight + 2 * padding;
 
-        Font headerFont = new Font("SimSun", Font.BOLD, 14); // 使用宋体以更好地支持中文
+        Font headerFont = new Font("SimSun", Font.BOLD, 14);
         Font bodyFont = new Font("Arial", Font.PLAIN, 12);
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
@@ -214,23 +213,21 @@ public class FinancialRecordServiceImpl implements FinancialRecordService {
         BufferedImage image = new BufferedImage(imageWidth, imageHeight, BufferedImage.TYPE_INT_RGB);
         Graphics2D g2d = image.createGraphics();
 
-        // 填充背景色
         g2d.setColor(Color.WHITE);
         g2d.fillRect(0, 0, imageWidth, imageHeight);
 
-        // 开启抗锯齿，使文字和线条更平滑
         g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
 
-        g2d.setColor(Color.BLACK);
-        g2d.translate(padding, padding); // 设置绘制内容的起始坐标（即留出边距）
+        g2d.translate(padding, padding);
 
         // --- 3. 绘制表头和数据行文字 ---
+        g2d.setColor(Color.BLACK); // 设置默认颜色为黑色
+
         // 绘制表头
         g2d.setFont(headerFont);
         int currentX = 0;
         for (int i = 0; i < headers.length; i++) {
-            // 居中绘制表头文字
             FontMetrics fm = g2d.getFontMetrics();
             int textWidth = fm.stringWidth(headers[i]);
             g2d.drawString(headers[i], currentX + (columnWidths[i] - textWidth) / 2, rowHeight - 10);
@@ -257,27 +254,43 @@ public class FinancialRecordServiceImpl implements FinancialRecordService {
             };
 
             for (int j = 0; j < rowData.length; j++) {
-                g2d.drawString(rowData[j], currentX + 5, currentY + rowHeight - 10);
+                // ******************** 修改的核心部分 ********************
+                // 如果是前两列（'a'列和'b'列），则将颜色设置为蓝色
+                if (j == 0 || j == 1) {
+                    g2d.setColor(Color.BLUE);
+                } else {
+                    // 其他列使用默认的黑色
+                    g2d.setColor(Color.BLACK);
+                }
+
+
+                // ******************** 修改的核心部分 ********************
+                // 计算文本宽度以实现居中
+                FontMetrics fm = g2d.getFontMetrics();
+                int textWidth = fm.stringWidth(rowData[j]);
+                int x = currentX + (columnWidths[j] - textWidth) / 2; // 计算居中后的x坐标
+
+                // 使用计算好的x坐标绘制文本
+                g2d.drawString(rowData[j], x, currentY + rowHeight - 10);
+                // ******************************************************
+
                 currentX += columnWidths[j];
             }
         }
 
         // --- 4. 绘制完整的表格网格线 ---
-        // (这是修改的核心部分)
-
-        // 绘制所有横线
-        int numRows = records.size() + 1; // 总行数 = 表头(1) + 数据行数
+        g2d.setColor(Color.BLACK); // 确保网格线是黑色的
+        int numRows = records.size() + 1;
         for (int i = 0; i <= numRows; i++) {
             int y = i * rowHeight;
             g2d.drawLine(0, y, tableWidth, y);
         }
 
-        // 绘制所有竖线
         currentX = 0;
-        g2d.drawLine(0, 0, 0, tableHeight); // 绘制最左侧的竖线
+        g2d.drawLine(0, 0, 0, tableHeight);
         for (int width : columnWidths) {
             currentX += width;
-            g2d.drawLine(currentX, 0, currentX, tableHeight); // 绘制每列右侧的竖线
+            g2d.drawLine(currentX, 0, currentX, tableHeight);
         }
 
         g2d.dispose();
@@ -288,7 +301,8 @@ public class FinancialRecordServiceImpl implements FinancialRecordService {
             byte[] bytes = baos.toByteArray();
             return "data:image/png;base64," + Base64.getEncoder().encodeToString(bytes);
         } catch (IOException e) {
-             log.info("生成图片Base64时出错: {}", e.getMessage()); // 建议使用日志框架记录错误
+            // 建议使用日志框架记录错误, 例如:
+             log.error("生成图片Base64时出错", e);
 //            e.printStackTrace();
             return ""; // 或者抛出自定义异常
         }
