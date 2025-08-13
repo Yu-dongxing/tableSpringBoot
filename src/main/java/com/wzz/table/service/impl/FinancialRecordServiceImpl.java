@@ -243,7 +243,7 @@ public class FinancialRecordServiceImpl implements FinancialRecordService {
 
             String[] rowData = {
                     //序号，操作员，件数，金额，单z,变动，变动前金额，当前金额
-                    String.valueOf(record.getId()),//序号
+                    String.valueOf(i+1),//序号
                     String.valueOf(record.getUserId()),//操作员
                     String.valueOf(record.getQuantity()),//件数
                     record.getPrice() != null ? String.format("%.2f", record.getPrice()) : "N/A",//金额

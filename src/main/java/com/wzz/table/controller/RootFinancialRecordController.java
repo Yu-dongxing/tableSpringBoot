@@ -27,38 +27,107 @@ public class RootFinancialRecordController {
     private FinancialRecordService financialRecordService;
     private final Object syncLock = new Object(); // 用于线程锁的对象
 
+    //ids没传导致的Cannot parse null string  现已修改
     @PostMapping("/up")
     public Result<String> addList(@RequestBody FinancialRecordDto financialRecordDto) {
         synchronized (syncLock) { // 添加线程锁
             Long batchSize = financialRecordService.getNextBatchId(); // 获取下一个批次值
 
-            //String baId = generateBatchId();
             for (FinancialRecordListDto item : financialRecordDto.getData()) {
                 LocalDateTime crTime = null;
                 FinancialRecord f = new FinancialRecord();
+
+                // 检查 ids 是否为空，如果为空则设置默认值（例如 0）
+                String idsStr = financialRecordDto.getIds();
+                int ids = 0; // 默认值
+                if (idsStr != null && !idsStr.isEmpty()) {
+                    try {
+                        ids = Integer.parseInt(idsStr);
+                    } catch (NumberFormatException e) {
+                        log.error("Invalid ids value: {}", idsStr);
+                    }
+                }
                 f.setMake(financialRecordDto.getMake());
-                f.setIds(financialRecordDto.getIds());
-                f.setChanges(item.getChanges());
+                f.setIds(ids);
+
+                // 检查 orders 是否为空，如果为空则设置默认值（例如 0）
+                String ordersStr = item.getOrders();
+                int orders = 0; // 默认值
+                if (ordersStr != null && !ordersStr.isEmpty()) {
+                    try {
+                        orders = Integer.parseInt(ordersStr);
+                    } catch (NumberFormatException e) {
+                        log.error("Invalid orders value: {}", ordersStr);
+                    }
+                }
+                f.setOrders(orders);
+
+                // 检查 quantity 是否为空，如果为空则设置默认值（例如 0）
+                String quantityStr = item.getQuantity();
+                int quantity = 0; // 默认值
+                if (quantityStr != null && !quantityStr.isEmpty()) {
+                    try {
+                        quantity = Integer.parseInt(quantityStr);
+                    } catch (NumberFormatException e) {
+                        log.error("Invalid quantity value: {}", quantityStr);
+                    }
+                }
+                f.setQuantity(quantity);
+
+                // 检查 balance 是否为空，如果为空则设置默认值（例如 0）
+                String balanceStr = item.getBalance();
+                long balance = 0; // 默认值
+                if (balanceStr != null && !balanceStr.isEmpty()) {
+                    try {
+                        balance = Long.valueOf(balanceStr);
+                    } catch (NumberFormatException e) {
+                        log.error("Invalid balance value: {}", balanceStr);
+                    }
+                }
+                f.setBalance(balance);
+
+                // 检查 lastBalance 是否为空，如果为空则设置默认值（例如 0）
+                String lastBalanceStr = item.getLastBalance();
+                long lastBalance = 0; // 默认值
+                if (lastBalanceStr != null && !lastBalanceStr.isEmpty()) {
+                    try {
+                        lastBalance = Long.valueOf(lastBalanceStr);
+                    } catch (NumberFormatException e) {
+                        log.error("Invalid lastBalance value: {}", lastBalanceStr);
+                    }
+                }
+                f.setLastBalance(lastBalance);
+
+                // 检查 userId 是否为空，如果为空则设置默认值（例如 0）
+                String userIdStr = item.getUserId();
+                long userId = 0; // 默认值
+                if (userIdStr != null && !userIdStr.isEmpty()) {
+                    try {
+                        userId = Long.valueOf(userIdStr);
+                    } catch (NumberFormatException e) {
+                        log.error("Invalid userId value: {}", userIdStr);
+                    }
+                }
+                f.setUserId(userId);
+
+                // 其他字段的处理逻辑...
+                f.setChanges(Long.valueOf(item.getChanges()));
                 f.setName(item.getName());
-                f.setPrice(item.getPrice());
-                f.setQuantity(item.getQuantity());
-                f.setBalance(item.getBalance());
-                f.setLastBalance(item.getLastBalance());
-                f.setOrders(item.getOrders());
-                f.setPrice(item.getPrice());
-                f.setUserId(item.getUserId());
+                f.setPrice(Double.valueOf(item.getPrice()));
                 f.setBatch(batchSize);
-                if(!StrUtil.hasBlank(item.getCrTime())){
+
+                if (!StrUtil.hasBlank(item.getCrTime())) {
                     crTime = DateTimeUtil.parseDateTime(item.getCrTime());
-                }else {
+                } else {
                     crTime = LocalDateTime.now();
                 }
                 f.setCrTime(crTime);
+
                 Boolean is = financialRecordService.add(f);
-                if(is){
-                    log.info("插入成功数据{}",f.toString());
-                }else {
-                    log.info("插入错误,数据{}",f.toString());
+                if (is) {
+                    log.info("插入成功数据{}", f.toString());
+                } else {
+                    log.info("插入错误,数据{}", f.toString());
                 }
             }
             return Result.success("成功，返回当前批次ID", batchSize.toString());

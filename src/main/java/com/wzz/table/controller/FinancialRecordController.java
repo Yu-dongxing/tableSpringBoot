@@ -39,16 +39,16 @@ public class FinancialRecordController {
                 LocalDateTime crTime = null;
                 FinancialRecord f = new FinancialRecord();
                 f.setMake(financialRecordDto.getMake());
-                f.setIds(financialRecordDto.getIds());
-                f.setChanges(item.getChanges());
+                f.setIds(Integer.parseInt(financialRecordDto.getIds()));
+                f.setChanges(Long.valueOf(item.getChanges()));
                 f.setName(item.getName());
-                f.setPrice(item.getPrice());
-                f.setQuantity(item.getQuantity());
-                f.setBalance(item.getBalance());
-                f.setLastBalance(item.getLastBalance());
-                f.setOrders(item.getOrders());
-                f.setPrice(item.getPrice());
-                f.setUserId(item.getUserId());
+                f.setPrice(Double.valueOf(item.getPrice()));
+                f.setQuantity(Integer.parseInt(item.getQuantity()));
+                f.setBalance(Long.valueOf(item.getBalance()));
+                f.setLastBalance(Long.valueOf(item.getLastBalance()));
+                f.setOrders(Integer.parseInt(item.getOrders()));
+                f.setPrice(Double.valueOf(item.getPrice()));
+                f.setUserId(Long.valueOf(item.getUserId()));
                 f.setBatch(batchSize);
                 if(!StrUtil.hasBlank(item.getCrTime())){
                     crTime = DateTimeUtil.parseDateTime(item.getCrTime());

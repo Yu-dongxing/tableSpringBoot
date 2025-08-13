@@ -10,19 +10,19 @@ public class FinancialRecordListDto {
     // 操作员昵称
     private String name;
     //操作用户id
-    private Long userId;
+    private String userId;
     // 件数
-    private int quantity;
+    private String quantity;
     // 金额
-    private Double price;
+    private String price;
     // 订单数量
-    private int orders;
+    private String orders;
     // 金额变动
-    private Long changes;
+    private String changes;
     // 变动前金额
-    private Long lastBalance;
+    private String lastBalance;
     // 当前金额
-    private Long balance;
+    private String balance;
     // 创建时间
     private String crTime;
 }
