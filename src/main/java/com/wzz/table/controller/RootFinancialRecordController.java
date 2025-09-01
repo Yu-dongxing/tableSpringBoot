@@ -5,11 +5,15 @@ import com.wzz.table.DTO.FinancialRecordDto;
 import com.wzz.table.DTO.FinancialRecordListDto;
 import com.wzz.table.DTO.Result;
 import com.wzz.table.pojo.FinancialRecord;
+import com.wzz.table.pojo.PointsUsers;
 import com.wzz.table.service.FinancialRecordService;
+import com.wzz.table.service.PointsUsersService;
 import com.wzz.table.utils.DateTimeUtil;
+import com.wzz.table.utils.OperationlogUtil;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.Instant;
@@ -25,17 +29,26 @@ public class RootFinancialRecordController {
     private static final Logger log = LogManager.getLogger(RootFinancialRecordController.class);
     @Autowired
     private FinancialRecordService financialRecordService;
+
+    @Autowired
+    private PointsUsersService pointsUsersService;
+    @Autowired
+    private OperationlogUtil operationlogUtil;
+
     private final Object syncLock = new Object(); // 用于线程锁的对象
 
     //ids没传导致的Cannot parse null string  现已修改
     @PostMapping("/up")
     public Result<String> addList(@RequestBody FinancialRecordDto financialRecordDto) {
+        log.info("<UNK>数据：：{}", financialRecordDto);
         synchronized (syncLock) { // 添加线程锁
             Long batchSize = financialRecordService.getNextBatchId(); // 获取下一个批次值
 
             for (FinancialRecordListDto item : financialRecordDto.getData()) {
                 LocalDateTime crTime = null;
                 FinancialRecord f = new FinancialRecord();
+
+                f.setRemark(item.getRemark());
 
                 // 检查 ids 是否为空，如果为空则设置默认值（例如 0）
                 String idsStr = financialRecordDto.getIds();
@@ -81,7 +94,7 @@ public class RootFinancialRecordController {
                     try {
                         balance = Long.valueOf(balanceStr);
                     } catch (NumberFormatException e) {
-                        log.error("Invalid balance value: {}", balanceStr);
+                        log.error("balance数值为: {}", balanceStr);
                     }
                 }
                 f.setBalance(balance);
@@ -210,5 +223,137 @@ public class RootFinancialRecordController {
         response.put("imageBase64", base64Image);
 
         return Result.success(response);
+    }
+
+    /**
+     * //增加积分----
+     * @param user
+     * @param point
+     * @return
+     */
+    @PostMapping("/addpoint")
+    public Result<?> addPoint (String user,long point) {
+        PointsUsers p = pointsUsersService.findByUser(user);
+        if (p == null) {
+            PointsUsers pointsUsers =new PointsUsers();
+            pointsUsers.setUser(user);
+            pointsUsers.setPoints(point);
+            Boolean is_add = pointsUsersService.add(pointsUsers);
+            if (is_add) {
+                return Result.success("增加用户 并且增加积分成功");
+            }else {
+                return Result.success("失败 未知原因");
+            }
+
+        }else {
+            p.setPoints(p.getPoints() + point);
+            Boolean is_update = pointsUsersService.update(p);
+            if (is_update) {
+                operationlogUtil.adminAdd(p.getUser(), point,"增加");
+                return Result.success("积分增加成功！");
+            }else {
+                return Result.success("积分增加失败！");
+            }
+
+        }
+    }
+
+    /**
+     * //减少积分------
+     * @param user
+     * @param point
+     * @return
+     */
+    @PostMapping("/reducepoint")
+    public Result<?> reducePoint (String user,long point) {
+        PointsUsers p = pointsUsersService.findByUser(user);
+        if (p == null) {
+            return Result.success("用户不存在，无法减少积分");
+        }else {
+            if(p.getPoints()-point<0){
+                return Result.error("积分减少失败，值为负数？");
+            }
+            p.setPoints(p.getPoints() - point);
+            Boolean is_update = pointsUsersService.update(p);
+            if (is_update) {
+                operationlogUtil.adminAdd(p.getUser(), point,"减少");
+                return Result.success("积分减少成功！");
+            }else {
+                return Result.success("积分减少失败！");
+            }
+
+        }
+    }
+
+    /**
+     * //根据用户名查询积分 ----
+     * @param username
+     * @return
+     */
+
+    @GetMapping("/find/user")
+    public Result<?> findByUser(String username){
+        PointsUsers a = pointsUsersService.findByUser(username);
+        if (a != null) {
+            return Result.success(a);
+        }else {
+            return Result.error("查询错误！");
+        }
+
+    }
+    /**
+     * 根据用户标识（user）修改用户昵称（nickname）
+     */
+    @PostMapping("/point/user/update")
+    public Result<?> updateByUserId(@RequestBody Map<String, String> map) {
+        String user = map.get("user");
+        String nickname = map.get("nickname");
+        if (!StringUtils.hasText(user)) {
+            return Result.error("更新失败，用户标识'user'不能为空！");
+        }
+        if (!StringUtils.hasText(nickname)) {
+            return Result.error("更新失败，昵称'nickname'不能为空！");
+        }
+        PointsUsers p = pointsUsersService.findByUser(user);
+        if (p == null) {
+            return Result.error("该用户不存在！");
+        }
+        if (nickname.equals(p.getNickname())) {
+            return Result.success("更新成功！昵称未发生变化。");
+        }
+        p.setNickname(nickname);
+        try {
+            boolean isUpdated = pointsUsersService.update(p);
+            if (isUpdated) {
+                return Result.success("更新成功！");
+            } else {
+                return Result.error("更新失败，请稍后重试。");
+            }
+        } catch (Exception e) {
+            return Result.error("更新失败，服务器内部错误。");
+        }
+    }
+    /**
+     * 根据userId查询当前财务系统数据的数量
+     */
+    @GetMapping("/unm/{id}")
+    public Result<?> findByUserIdNum(@PathVariable String id){
+        Long unm = financialRecordService.countByUserId(Long.valueOf(id));
+        if (unm == null) {
+            return Result.error("查询错误！");
+        }
+        return Result.success("查询成功！",unm);
+    }
+
+    /**
+     * 获取最大批次
+     */
+    @GetMapping("/max/batch")
+    public Result<?> findByMaxBatch(){
+        Long maxBatch = financialRecordService.getMaxBatch();
+        if (maxBatch == null) {
+            return Result.error("没有批次id");
+        }
+        return Result.success(maxBatch);
     }
 }

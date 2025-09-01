@@ -1,6 +1,7 @@
 package com.wzz.table.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.conditions.query.LambdaQueryChainWrapper;
 import com.wzz.table.DTO.PointFindUserAndNick;
 import com.wzz.table.mapper.PointsUsersMapper;
@@ -80,5 +81,10 @@ public class PointsUsersServiceImpl implements PointsUsersService {
         return pointsUsersMapper.selectOne(new LambdaQueryWrapper<PointsUsers>()
                 .eq(PointsUsers::getUser, pointFindUserAndNick.getUser())
                 .eq(PointsUsers::getNickname, pointFindUserAndNick.getNickname()));
+    }
+
+    @Override
+    public Boolean deleteAll() {
+        return pointsUsersMapper.delete(new QueryWrapper<>()) >= 0;
     }
 }

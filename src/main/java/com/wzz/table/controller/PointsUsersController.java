@@ -5,8 +5,11 @@ import com.wzz.table.DTO.PointFindUserAndNick;
 import com.wzz.table.DTO.Result;
 import com.wzz.table.pojo.Operationlog;
 import com.wzz.table.pojo.PointsUsers;
+import com.wzz.table.service.FinancialRecordService;
 import com.wzz.table.service.PointsUsersService;
 import com.wzz.table.utils.OperationlogUtil;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -16,10 +19,13 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/points")
 public class PointsUsersController {
+    private static final Logger log = LogManager.getLogger(PointsUsersController.class);
     @Autowired
     private PointsUsersService pointsUsersService;
     @Autowired
     private OperationlogUtil operationlogUtil;
+    @Autowired
+    private FinancialRecordService financialRecordService;
     //积分添加，更新
     @PostMapping("/add")
     public Result<String> add(@RequestBody PointsUsers pointsUsers) {
@@ -63,12 +69,21 @@ public class PointsUsersController {
             return Result.error("该用户已存在！");
         }
     }
-    //增加积分
+    //增加积分----
     @PostMapping("/addpoint")
     public Result<String> addPoint (String user,long point) {
         PointsUsers p = pointsUsersService.findByUser(user);
         if (p == null) {
-            return Result.success("用户不存在，无法增加积分");
+            PointsUsers pointsUsers =new PointsUsers();
+            pointsUsers.setUser(user);
+            pointsUsers.setPoints(point);
+            Boolean is_add = pointsUsersService.add(pointsUsers);
+            if (is_add) {
+                return Result.success("增加用户 并且增加积分成功");
+            }else {
+                return Result.success("失败 未知原因");
+            }
+
         }else {
             p.setPoints(p.getPoints() + point);
             Boolean is_update = pointsUsersService.update(p);
@@ -81,7 +96,7 @@ public class PointsUsersController {
 
         }
     }
-    //减少积分
+    //减少积分------
     @PostMapping("/reducepoint")
     public Result<String> reducePoint (String user,long point) {
         PointsUsers p = pointsUsersService.findByUser(user);
@@ -122,7 +137,7 @@ public class PointsUsersController {
             return Result.success("该用户删除失败");
         }
     }
-    //根据用户名查询积分
+    //根据用户名查询积分 ----
     @GetMapping("/find/user")
     public Result<PointsUsers> findByUser(String username){
         PointsUsers a = pointsUsersService.findByUser(username);
@@ -153,5 +168,22 @@ public class PointsUsersController {
         }
 
 
+    }
+    /**
+     *删除所有积分用户
+     */
+    @GetMapping("/delete/all")
+    public Result<?> deleteAll(){
+        log.info("开始删除积分用户和财务系统的数据》》》");
+        Boolean is =  pointsUsersService.deleteAll();
+        Boolean is_f = financialRecordService.cleanupAllData();
+        if (is) {
+            if (is_f) {
+                return Result.success("删除所有积分用户和财务数据成功！");
+            }
+            return Result.success("删除所有积分用户成功！");
+        }
+        log.info("\"<删除所有积分用户失败>\"");
+        return Result.error("<删除所有积分用户失败>");
     }
 }

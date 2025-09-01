@@ -74,4 +74,32 @@ public class OperationlogUtil {
             log.error("操作日志添加失败？");
         }
     }
+    /**
+     * 管理员操作
+     */
+    public void adminAdd(
+            String points_user,
+            Long change,
+            String czlx
+    ) {
+        Operationlog operationlog = new Operationlog();
+        operationlog.setCrTime(LocalDateTime.now());
+        operationlog.setAdminUser("系统操作");
+        operationlog.setChangeNum(change);
+        operationlog.setOpenLs(czlx);
+        PointsUsers us = pointsUsersService.findByUser(points_user);
+        if (us == null) {
+            log.info("没有该用户");
+            operationlog.setPointsUser("访客");
+        }else {
+            operationlog.setPoints(us.getPoints());
+            operationlog.setPointsUser(us.getUser());
+        }
+        Boolean is_add = operationlogService.add(operationlog);
+        if (is_add) {
+            log.info("操作日志添加成功！");
+        }else {
+            log.error("操作日志添加失败？");
+        }
+    }
 }

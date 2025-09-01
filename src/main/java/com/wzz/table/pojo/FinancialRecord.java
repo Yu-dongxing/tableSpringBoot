@@ -48,6 +48,12 @@ public class FinancialRecord {
     // 当前金额
     @TableField("balance")
     private Long balance;
+
+    /**
+     * 备注
+     */
+    @TableField("remark")
+    private String remark;
     // 创建时间
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     @TableField("cr_time")

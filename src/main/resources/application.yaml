@@ -69,3 +69,7 @@ sa-token:
   jwt-secret-key: 6LWE5rqQ5bqT57O757uf
   # token前缀
   #token-prefix: Bearer
+
+
+img:
+  path: E:\table_sys\table\src\main\resources\ba.png

@@ -6,16 +6,17 @@ import com.wzz.table.DTO.BatchInfo;
 import com.wzz.table.mapper.FinancialRecordMapper;
 import com.wzz.table.pojo.FinancialRecord;
 import com.wzz.table.service.FinancialRecordService;
+import com.wzz.table.utils.ImageUtil;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
@@ -26,6 +27,16 @@ import java.util.stream.Collectors;
 
 @Service
 public class FinancialRecordServiceImpl implements FinancialRecordService {
+
+    @Autowired
+    private ImageUtil imageUtil;
+
+
+    @Value("${img.path}")
+    private String img_path;
+
+
+
     private static final Logger log = LogManager.getLogger(FinancialRecordServiceImpl.class);
     @Autowired
     private FinancialRecordMapper financialRecordMapper;
@@ -34,6 +45,9 @@ public class FinancialRecordServiceImpl implements FinancialRecordService {
         int i = financialRecordMapper.insert(f);
         return i > 0;
     }
+
+    // 1. 在循环外部定义格式化器，它可以被复用，效率更高
+    DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss");
 
     @Override
     public List<FinancialRecord> findByBatch(String batchId) {
@@ -87,6 +101,14 @@ public class FinancialRecordServiceImpl implements FinancialRecordService {
         int n = financialRecordMapper.delete(updateWrapper);
         return n > 0;
     }
+
+
+    @Override
+    public Boolean cleanupAllData() {
+        int n = financialRecordMapper.delete(null);
+        return n > 0;
+    }
+
     /**
      * 核心方法更新：查询所有批次，并统计每个批次的数据条数、总金额，
      * 并找出 changes 最大的记录所对应的 userId、make，以及批次内最大的 price 和最新的时间。
@@ -189,40 +211,98 @@ public class FinancialRecordServiceImpl implements FinancialRecordService {
         }
 
         // --- 1. 定义图片和表格的尺寸、样式 ---
-        int rowHeight = 30;
-        int padding = 20;
+        int rowHeight = 50;
+        int padding = 40;
+        int topMargin = 200; // 【核心修改】定义表格距离图片顶部的距离
 
         // 根据您代码中的注释，更新了表头，使其更具可读性
-        String[] headers = {"a", "b", "c", "d", "e", "f", "g","h"};
-        int[] columnWidths = {50, 60, 80, 80, 80, 150, 200,200};
+        String[] headers = {"序号", "昵称", "投弹", "点数", "背书", "s/w", "当前","尚橘","time","结果"};
+        int[] columnWidths = {60, 80, 80, 80, 80, 80, 80,100,100,80};
 
         int tableWidth = 0;
         for (int width : columnWidths) {
             tableWidth += width;
         }
 
-        int tableHeight = rowHeight * (records.size() + 1);
+        // 【核心修改】图片的总高度由内容决定 (顶部留白 + 表格高度 + 底部留白)
+        int tableHeight = rowHeight * (records.size() + 1); // 表格高度（包含表头）
         int imageWidth = tableWidth + 2 * padding;
-        int imageHeight = tableHeight + 2 * padding;
+        int imageHeight = tableHeight + topMargin + padding; // 最终图片高度
 
-        Font headerFont = new Font("SimSun", Font.BOLD, 14);
-        Font bodyFont = new Font("Arial", Font.PLAIN, 12);
+        Font headerFont = new Font("Microsoft YaHei", Font.BOLD, 28);
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+        log.info(String.valueOf(imageWidth),imageHeight);
+        System.out.println(imageWidth+"|"+imageHeight);
 
-        // --- 2. 创建画布 ---
+        // --- 2. 创建画布并绘制可拉伸和裁剪的背景 ---
         BufferedImage image = new BufferedImage(imageWidth, imageHeight, BufferedImage.TYPE_INT_RGB);
         Graphics2D g2d = image.createGraphics();
 
-        g2d.setColor(Color.WHITE);
+
+        // 【核心修改】从文件系统路径直接读取图片
+        // 【核心修改】
+        try {
+//            String imagePath = "E:\\table_sys\\table\\src\\main\\resources\\ba.png";
+            int cropHeight = imageHeight; // 指定要裁剪的高度
+
+            // 1. 调用 imageUtil 的新方法，并接收返回的字节数组
+            byte[] croppedImageBytes = imageUtil.cropImage(img_path, cropHeight);
+            // 2. 将字节数组转换回 BufferedImage
+            BufferedImage backgroundImage = ImageIO.read(new ByteArrayInputStream(croppedImageBytes));
+
+            // 3. 使用裁剪后的图片进行绘制
+            // g2d 是你的 Graphics2D 对象
+            g2d.drawImage(backgroundImage, 0, 0, imageWidth, imageHeight, null);
+
+        } catch (IOException e) {
+            log.error("加载或裁剪背景图片时发生 IO 异常: " + e.getMessage() + "，将使用白色背景。");
+            // 绘制备用背景
+            g2d.setColor(Color.WHITE);
+            g2d.fillRect(0, 0, imageWidth, imageHeight);
+        } catch (IllegalArgumentException e) {
+            log.error("裁剪图片时参数错误: " + e.getMessage() + "，将使用白色背景。");
+            // 绘制备用背景
+            g2d.setColor(Color.WHITE);
+            g2d.fillRect(0, 0, imageWidth, imageHeight);
+        }
+
+
+        // (可选，但推荐) 在背景图上覆盖一个半透明的白色蒙层，让文字更清晰
+        // Alpha值范围 0-255，值越小越透明。180 是一个比较合适的参考值
+        Color overlay = new Color(255, 255, 255, 0);
+        g2d.setColor(overlay);
         g2d.fillRect(0, 0, imageWidth, imageHeight);
 
+
+        // 设置抗锯齿，让文字和线条更平滑
         g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
 
-        g2d.translate(padding, padding);
+        // 【核心修改】平移画布，为表格的绘制留出顶部和左侧的边距
+        g2d.translate(padding, topMargin);
+
 
         // --- 3. 绘制表头和数据行文字 ---
         g2d.setColor(Color.BLACK); // 设置默认颜色为黑色
+
+
+//        g2d.drawString(String.valueOf(records.get(0).getBatch()), padding, padding);
+
+
+        if (records != null && !records.isEmpty()) {
+            // 1. 准备要绘制的文本
+            String batchText = String.valueOf(records.get(0).getBatch());
+
+            // 2. (可选但推荐)为这个标题设置一个独立的字体
+            Font titleFont = new Font("Microsoft YaHei", Font.BOLD, 24); // 例如：宋体，加粗，14号
+            g2d.setFont(titleFont);
+
+            // 3. 在左上角绘制文本 (使用 padding 作为边距)
+            // g2d.getFontMetrics().getAscent() 可以让文字的垂直对齐更精确
+            int yPosition = padding + g2d.getFontMetrics().getAscent();
+            g2d.drawString(batchText, imageWidth-100, -50);
+        }
+
 
         // 绘制表头
         g2d.setFont(headerFont);
@@ -234,36 +314,56 @@ public class FinancialRecordServiceImpl implements FinancialRecordService {
             currentX += columnWidths[i];
         }
 
+        Font chineseFont = new Font("Microsoft YaHei", Font.PLAIN, 24); // 使用宋体，12号大小
+
+        g2d.setFont(chineseFont);
         // 绘制数据行
-        g2d.setFont(bodyFont);
+//        g2d.setFont(bodyFont);
+
         for (int i = 0; i < records.size(); i++) {
             FinancialRecord record = records.get(i);
             int currentY = rowHeight * (i + 1);
             currentX = 0;
 
+            // 2. 处理名称截取
+            String name = record.getName();
+            String truncatedName = (name != null && name.length() > 3) ? name.substring(0, 3) : name;
+
+            // 3. 使用 DateTimeFormatter 格式化 LocalDateTime
+            String formattedTime = "0";
+            if (record.getCrTime() != null) {
+                // 直接对 LocalDateTime 对象调用 format 方法
+                formattedTime = record.getCrTime().format(timeFormatter);
+            }
+
             String[] rowData = {
                     //序号，操作员，件数，金额，单z,变动，变动前金额，当前金额
                     String.valueOf(i+1),//序号
-                    String.valueOf(record.getUserId()),//操作员
+//                    String.valueOf(record.getUserId()),//操作员
+//                    String.valueOf(record.getName()),
+                    truncatedName,
                     String.valueOf(record.getQuantity()),//件数
                     record.getPrice() != null ? String.format("%.2f", record.getPrice()) : "N/A",//金额
                     String.valueOf(record.getOrders()),//订单数量
                     record.getChanges() != null ? String.valueOf(record.getChanges()) : "N/A",//变动
+                    String.valueOf(record.getBalance()),//当前金额
                     String.valueOf(record.getLastBalance()),//变动前金额
-                    String.valueOf(record.getBalance())//当前金额
+//                    String.valueOf(record.getCrTime()),
+                    formattedTime,
+                    String.valueOf(record.getRemark())
             };
+            boolean isz=false;
+            if (rowData[9].contains("正")){
+                isz=true;
+            }
 
             for (int j = 0; j < rowData.length; j++) {
                 // ******************** 修改的核心部分 ********************
                 // 如果是前两列（'a'列和'b'列），则将颜色设置为蓝色
-                if (j == 0 || j == 1) {
-                    g2d.setColor(Color.BLUE);
-                } else {
-                    // 其他列使用默认的黑色
-                    g2d.setColor(Color.BLACK);
+                g2d.setColor(Color.BLACK);
+                if (isz){
+                    g2d.setColor(Color.RED);
                 }
-
-
                 // ******************** 修改的核心部分 ********************
                 // 计算文本宽度以实现居中
                 FontMetrics fm = g2d.getFontMetrics();
@@ -277,21 +377,42 @@ public class FinancialRecordServiceImpl implements FinancialRecordService {
                 currentX += columnWidths[j];
             }
         }
-
-        // --- 4. 绘制完整的表格网格线 ---
-        g2d.setColor(Color.BLACK); // 确保网格线是黑色的
+        g2d.setColor(new Color(200, 200, 200));
+        // 计算需要绘制的行数
         int numRows = records.size() + 1;
+
+        // 这是一个循环，从 i=0 开始，直到 i 等于 numRows
         for (int i = 0; i <= numRows; i++) {
             int y = i * rowHeight;
             g2d.drawLine(0, y, tableWidth, y);
         }
 
-        currentX = 0;
-        g2d.drawLine(0, 0, 0, tableHeight);
-        for (int width : columnWidths) {
-            currentX += width;
-            g2d.drawLine(currentX, 0, currentX, tableHeight);
-        }
+
+        // --- 4. 绘制完整的表格网格线 ---
+//        g2d.setColor(Color.BLACK); // 确保网格线是黑色的
+//        int numRows = records.size() + 1;
+//        for (int i = 0; i <= numRows; i++) {
+//            int y = i * rowHeight;
+//            g2d.drawLine(0, y, tableWidth, y);
+//        }
+
+//         (2) 仅为表头绘制竖线
+//        currentX = 0;
+//        // 绘制最左侧的竖线 (仅限表头高度)
+//        g2d.drawLine(0, 0, 0, rowHeight);
+//        for (int width : columnWidths) {
+//            currentX += width;
+//            // 绘制每列右侧的竖线 (仅限表头高度)
+//            g2d.drawLine(currentX, 0, currentX, rowHeight);
+//        }
+
+
+//        currentX = 0;
+//        g2d.drawLine(0, 0, 0, tableHeight);
+//        for (int width : columnWidths) {
+//            currentX += width;
+//            g2d.drawLine(currentX, 0, currentX, tableHeight);
+//        }
 
         g2d.dispose();
 
@@ -306,6 +427,21 @@ public class FinancialRecordServiceImpl implements FinancialRecordService {
 //            e.printStackTrace();
             return ""; // 或者抛出自定义异常
         }
+    }
+
+    /**
+     * 根据 userId 查询记录数量的具体实现
+     * @param userId 用户ID
+     * @return 记录数量
+     */
+    @Override
+    public Long countByUserId(Long userId) {
+        // 创建查询条件构造器
+        LambdaQueryWrapper<FinancialRecord> queryWrapper = new LambdaQueryWrapper<>();
+        // 设置查询条件：userId 等于传入的 id
+        queryWrapper.eq(FinancialRecord::getUserId, userId);
+        // 调用 mapper 的 selectCount 方法，直接获取数量
+        return financialRecordMapper.selectCount(queryWrapper);
     }
 
 }

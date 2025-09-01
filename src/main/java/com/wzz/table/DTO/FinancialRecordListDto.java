@@ -25,4 +25,9 @@ public class FinancialRecordListDto {
     private String balance;
     // 创建时间
     private String crTime;
+
+    /**
+     * 备注
+     */
+    private String remark;
 }

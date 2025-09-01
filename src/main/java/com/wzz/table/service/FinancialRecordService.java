@@ -18,10 +18,14 @@ public interface FinancialRecordService {
 
     Boolean cleanupOldData();
 
+    Boolean cleanupAllData();
+
     Map<String, Object> findAllBatchesWithDetails();
 
 
     List<FinancialRecord> findRecordsByBatchId(Long batchId);
 
     String generateRecordsImageBase64(List<FinancialRecord> records);
+
+    Long countByUserId(Long userId);
 }

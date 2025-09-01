@@ -21,4 +21,6 @@ public interface PointsUsersService {
     PointsUsers findByNickName(String nickname);
 
     PointsUsers findByUserAndBick(PointFindUserAndNick pointFindUserAndNick);
+
+    Boolean deleteAll();
 }

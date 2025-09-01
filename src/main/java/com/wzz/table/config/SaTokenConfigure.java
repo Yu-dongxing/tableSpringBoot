@@ -20,18 +20,16 @@ public class SaTokenConfigure implements WebMvcConfigurer {
     }
     // 注册登陆，角色拦截器
     public void addInterceptors(InterceptorRegistry registry) {
-
-        registry.addInterceptor(new SaInterceptor(handler ->{
-            SaRouter.match("/**")
-                    .notMatch("/api/user/login")
-                    .notMatch("/api/root/**")
-                    .notMatch("/api/user/logout")
-                    .notMatch("/api/user/sign")
-                    .notMatch("/api/user/get")
-                    .notMatch("/api/points/add")
-                    .check(r->{
-                        StpUtil.checkLogin();
-                    });
-        })).addPathPatterns("/**");
+        // 注册 Sa-Token 拦截器，校验规则为 StpUtil.checkLogin()
+        registry.addInterceptor(new SaInterceptor(handler -> StpUtil.checkLogin()))
+                .addPathPatterns("/**") // 拦截所有路径
+                .excludePathPatterns(    // 排除以下路径
+                        "/api/user/login",
+                        "/api/root/**",      // 重点：在这里排除你的路径
+                        "/api/user/logout",
+                        "/api/user/sign",
+                        "/api/user/get",
+                        "/api/points/add"
+                );
     }
 }
